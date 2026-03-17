@@ -34,5 +34,18 @@ Flutter app for managing shrimp/prawn farms. Tracks ponds, water quality, feed, 
 flutter pub get
 flutter run
 
+Make sure you have valid Firebase configuration files for your own project:
+
+android/app/google-services.json
+ios/Runner/GoogleService-Info.plist
+These files are not committed; use your own keys.
+
+Tech stack
+Flutter
+Firebase Core + Cloud Firestore
+flutter_local_notifications + timezone
+fl_chart
+flutter_localizations + intl
+
 flutter pub get
 flutter run
