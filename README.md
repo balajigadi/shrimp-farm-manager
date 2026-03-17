@@ -1,16 +1,35 @@
-# prawn_farm_app
+# Shrimp Farm Manager
 
-A new Flutter project.
+Flutter app for managing shrimp/prawn farms. Tracks ponds, water quality, feed, growth, mortality, expenses, and generates simple reports.
 
-## Getting Started
+## Features
 
-This project is a starting point for a Flutter application.
+- **Pond overview**
+  - Multiple ponds per farm
+  - Days of culture, average body weight, survival, FCR, biomass, harvest estimate
+- **Daily operations**
+  - Water quality logs (pH, salinity, ammonia, DO, temperature)
+  - Feed logs (per pond or all ponds)
+  - Growth sampling
+  - Mortality logging
+  - Expenses (feed, seed, labor, electricity, maintenance, other)
+- **Reports**
+  - Cycle summary (DOC, avg weight, biomass, FCR)
+  - 7‑day feed and water summaries
+  - Expense summary and simple profit estimate
+- **Localization**
+  - English and తెలుగు (Telugu)
+  - In‑app language switch under **Reports → Settings → Language**
+- **Alerts (MVP)**
+  - Local notifications (no backend) for:
+    - Feed reminders (4x per day)
+    - Daily water test
+    - Weekly growth sampling
+    - Daily mortality check
+  - Test alerts from **Settings** or Alerts screen (bell icon).
 
-A few resources to get you started if this is your first Flutter project:
+## Getting started
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+```bash
+flutter pub get
+flutter run
