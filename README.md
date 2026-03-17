@@ -33,3 +33,6 @@ Flutter app for managing shrimp/prawn farms. Tracks ponds, water quality, feed, 
 ```bash
 flutter pub get
 flutter run
+
+flutter pub get
+flutter run
