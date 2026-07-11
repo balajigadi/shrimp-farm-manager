@@ -13,7 +13,6 @@ android/app/google-services.json
 
 # iOS
 ios/Pods/
-ios/Runner.xcworkspace/
 ios/.symlinks/
 ios/Flutter/Flutter.podspec
 
