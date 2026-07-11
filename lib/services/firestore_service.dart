@@ -1,4 +1,8 @@
+import 'dart:io';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import '../features/pond/pond_model.dart';
 
 class FirestoreService {
@@ -6,11 +10,17 @@ class FirestoreService {
 
   static final FirestoreService instance = FirestoreService._();
 
-  /// For the current MVP we assume a single farm.
-  /// Later this can come from the authenticated user / farm selector.
-  static const String defaultFarmId = 'farm-1';
+  /// Current user-scoped farmId (1 user == 1 farm for MVP).
+  String get currentFarmId {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      throw StateError('Not signed in: farmId is unavailable.');
+    }
+    return user.uid;
+  }
 
   final FirebaseFirestore _db = FirebaseFirestore.instance;
+  final FirebaseStorage _storage = FirebaseStorage.instance;
 
   CollectionReference<Map<String, dynamic>> get _pondsCol =>
       _db.collection('ponds');
@@ -25,19 +35,35 @@ class FirestoreService {
   CollectionReference<Map<String, dynamic>> get _mortalityLogsCol =>
       _db.collection('mortalityLogs');
 
+  /// After [FirebaseAuth.signOut], rules deny reads; active snapshot listeners
+  /// would log `PERMISSION_DENIED`. Tie Firestore streams to auth so the
+  /// previous listen is cancelled and we emit [empty] when signed out.
+  Stream<T> _whenSignedIn<T>(T empty, Stream<T> Function(String uid) factory) {
+    return FirebaseAuth.instance.authStateChanges().asyncExpand((user) {
+      if (user == null) {
+        return Stream<T>.value(empty);
+      }
+      return factory(user.uid);
+    });
+  }
+
   // PONDS ---------------------------------------------------------------------
 
   Stream<List<Pond>> watchPonds() {
-    return _pondsCol.orderBy('name').snapshots().map(
-      (snapshot) {
-        return snapshot.docs.map(_pondFromDoc).toList();
-      },
-    );
+    return _whenSignedIn<List<Pond>>([], (uid) {
+      return _pondsCol.where('farmId', isEqualTo: uid).snapshots().map(
+        (snapshot) {
+          final ponds = snapshot.docs.map(_pondFromDoc).toList();
+          ponds.sort((a, b) => a.name.compareTo(b.name));
+          return ponds;
+        },
+      );
+    });
   }
 
   Future<void> upsertPond(Pond pond) async {
     final data = <String, dynamic>{
-      'farmId': pond.farmId,
+      'farmId': currentFarmId,
       'name': pond.name,
       'location': pond.location,
       'areaAcres': pond.areaAcres,
@@ -50,6 +76,10 @@ class FirestoreService {
       'survivalPercent': pond.survivalPercent,
       'totalFeedTons': pond.totalFeedTons,
       'fcr': pond.fcr,
+      'expectedAbwMin': pond.expectedAbwMin,
+      'expectedAbwMax': pond.expectedAbwMax,
+      'growthStatus': pond.growthStatus,
+      'growthGap': pond.growthGap,
       'estimatedHarvestDate': pond.estimatedHarvestDate,
       'estimatedBiomassTons': pond.estimatedBiomassTons,
     };
@@ -69,7 +99,7 @@ class FirestoreService {
     final data = doc.data()!;
     return Pond(
       id: doc.id,
-      farmId: data['farmId'] as String? ?? defaultFarmId,
+      farmId: data['farmId'] as String? ?? '',
       name: data['name'] as String? ?? '',
       location: data['location'] as String? ?? '',
       areaAcres: (data['areaAcres'] as num?)?.toDouble() ?? 0,
@@ -85,6 +115,10 @@ class FirestoreService {
       survivalPercent: (data['survivalPercent'] as num?)?.toDouble() ?? 0,
       totalFeedTons: (data['totalFeedTons'] as num?)?.toDouble() ?? 0,
       fcr: (data['fcr'] as num?)?.toDouble() ?? 0,
+      expectedAbwMin: (data['expectedAbwMin'] as num?)?.toDouble() ?? 0,
+      expectedAbwMax: (data['expectedAbwMax'] as num?)?.toDouble() ?? 0,
+      growthStatus: data['growthStatus'] as String? ?? '',
+      growthGap: (data['growthGap'] as num?)?.toDouble() ?? 0,
       estimatedHarvestDate:
           (data['estimatedHarvestDate'] as Timestamp?)?.toDate() ??
               DateTime.fromMillisecondsSinceEpoch(0),
@@ -96,20 +130,23 @@ class FirestoreService {
   // WATER LOGS ----------------------------------------------------------------
 
   Stream<List<PondLog>> watchWaterLogs(String pondId) {
-    return _waterLogsCol
-        .where('pondId', isEqualTo: pondId)
-        .orderBy('date', descending: true)
-        .snapshots()
-        .map(
-      (snapshot) {
-        return snapshot.docs.map(_waterLogFromDoc).toList();
-      },
-    );
+    return _whenSignedIn<List<PondLog>>([], (uid) {
+      return _waterLogsCol
+          .where('farmId', isEqualTo: uid)
+          .where('pondId', isEqualTo: pondId)
+          .orderBy('date', descending: true)
+          .snapshots()
+          .map(
+        (snapshot) {
+          return snapshot.docs.map(_waterLogFromDoc).toList();
+        },
+      );
+    });
   }
 
   Future<void> addWaterLog(PondLog log) {
     final data = <String, dynamic>{
-      'farmId': log.farmId,
+      'farmId': currentFarmId,
       'pondId': log.pondId,
       'date': log.date,
       'waterTempC': log.waterTempC,
@@ -117,6 +154,7 @@ class FirestoreService {
       'ph': log.ph,
       'salinityPpt': log.salinityPpt,
       'ammoniaPpm': log.ammoniaPpm,
+      'hardnessMgL': log.hardnessMgL,
       'feedKg': log.feedKg,
       'mortalityCount': log.mortalityCount,
     };
@@ -128,7 +166,7 @@ class FirestoreService {
     final data = doc.data()!;
     return PondLog(
       id: doc.id,
-      farmId: data['farmId'] as String? ?? defaultFarmId,
+      farmId: data['farmId'] as String? ?? '',
       pondId: data['pondId'] as String? ?? '',
       date: (data['date'] as Timestamp?)?.toDate() ??
           DateTime.fromMillisecondsSinceEpoch(0),
@@ -138,6 +176,7 @@ class FirestoreService {
       ph: (data['ph'] as num?)?.toDouble() ?? 0,
       salinityPpt: (data['salinityPpt'] as num?)?.toDouble() ?? 0,
       ammoniaPpm: (data['ammoniaPpm'] as num?)?.toDouble() ?? 0,
+      hardnessMgL: (data['hardnessMgL'] as num?)?.toDouble() ?? 0,
       feedKg: (data['feedKg'] as num?)?.toDouble() ?? 0,
       mortalityCount: (data['mortalityCount'] as num?)?.toInt() ?? 0,
     );
@@ -146,37 +185,43 @@ class FirestoreService {
   // FEED LOGS -----------------------------------------------------------------
 
   Stream<List<FeedLog>> watchFeedLogs(String pondId) {
-    return _feedLogsCol
-        .where('pondId', isEqualTo: pondId)
-        .orderBy('dateTime', descending: true)
-        .snapshots()
-        .map(
-      (snapshot) {
-        return snapshot.docs.map(_feedLogFromDoc).toList();
-      },
-    );
+    return _whenSignedIn<List<FeedLog>>([], (uid) {
+      return _feedLogsCol
+          .where('farmId', isEqualTo: uid)
+          .where('pondId', isEqualTo: pondId)
+          .orderBy('dateTime', descending: true)
+          .snapshots()
+          .map(
+        (snapshot) {
+          return snapshot.docs.map(_feedLogFromDoc).toList();
+        },
+      );
+    });
   }
 
   /// All feed logs for the current farm, across ponds.
   Stream<List<FeedLog>> watchFeedLogsForFarm() {
-    return _feedLogsCol
-        .where('farmId', isEqualTo: defaultFarmId)
-        .orderBy('dateTime', descending: true)
-        .snapshots()
-        .map(
-      (snapshot) {
-        return snapshot.docs.map(_feedLogFromDoc).toList();
-      },
-    );
+    return _whenSignedIn<List<FeedLog>>([], (uid) {
+      return _feedLogsCol
+          .where('farmId', isEqualTo: uid)
+          .orderBy('dateTime', descending: true)
+          .snapshots()
+          .map(
+        (snapshot) {
+          return snapshot.docs.map(_feedLogFromDoc).toList();
+        },
+      );
+    });
   }
 
   Future<void> addFeedLog(FeedLog log) async {
     final data = <String, dynamic>{
-      'farmId': log.farmId,
+      'farmId': currentFarmId,
       'pondId': log.pondId,
       'dateTime': log.dateTime,
       'feedType': log.feedType,
       'quantityKg': log.quantityKg,
+      if (log.trayStatus != null) 'trayStatus': log.trayStatus!.storageValue,
     };
 
     await _feedLogsCol.add(data);
@@ -189,19 +234,23 @@ class FirestoreService {
     final data = doc.data()!;
     return FeedLog(
       id: doc.id,
-      farmId: data['farmId'] as String? ?? defaultFarmId,
+      farmId: data['farmId'] as String? ?? '',
       pondId: data['pondId'] as String? ?? '',
       dateTime: (data['dateTime'] as Timestamp?)?.toDate() ??
           DateTime.fromMillisecondsSinceEpoch(0),
       feedType: data['feedType'] as String? ?? '',
       quantityKg: (data['quantityKg'] as num?)?.toDouble() ?? 0,
+      trayStatus: FeedTrayStatus.tryParse(data['trayStatus'] as String?),
     );
   }
-
+ 
   /// Recalculate `totalFeedTons` on the pond document from all its feed logs.
   Future<void> _recalculateTotalFeedForPond(String pondId) async {
     final snapshot =
-        await _feedLogsCol.where('pondId', isEqualTo: pondId).get();
+        await _feedLogsCol
+            .where('farmId', isEqualTo: currentFarmId)
+            .where('pondId', isEqualTo: pondId)
+            .get();
 
     double totalKg = 0;
     for (final doc in snapshot.docs) {
@@ -225,20 +274,26 @@ class FirestoreService {
   // GROWTH SAMPLES ------------------------------------------------------------
 
   Stream<List<GrowthSample>> watchGrowthSamples(String pondId) {
-    return _growthSamplesCol
-        .where('pondId', isEqualTo: pondId)
-        .orderBy('date', descending: true)
-        .snapshots()
-        .map(
-      (snapshot) {
-        return snapshot.docs.map(_growthSampleFromDoc).toList();
-      },
-    );
+    return _whenSignedIn<List<GrowthSample>>([], (uid) {
+      return _growthSamplesCol
+          .where('farmId', isEqualTo: uid)
+          .where('pondId', isEqualTo: pondId)
+          .orderBy('date', descending: true)
+          .snapshots()
+          .map(
+        (snapshot) {
+          return snapshot.docs.map(_growthSampleFromDoc).toList();
+        },
+      );
+    });
   }
 
-  Future<void> addGrowthSample(GrowthSample sample) async {
+  Future<void> addGrowthSample(
+    GrowthSample sample, {
+    Map<String, dynamic>? pondGrowthSummary,
+  }) async {
     final data = <String, dynamic>{
-      'farmId': sample.farmId,
+      'farmId': currentFarmId,
       'pondId': sample.pondId,
       'date': sample.date,
       'avgBodyWeightGrams': sample.avgBodyWeightGrams,
@@ -253,6 +308,7 @@ class FirestoreService {
       {
         'avgBodyWeightGrams': sample.avgBodyWeightGrams,
         'survivalPercent': sample.survivalPercent,
+        ...?pondGrowthSummary,
       },
       SetOptions(merge: true),
     );
@@ -262,7 +318,7 @@ class FirestoreService {
     final data = doc.data()!;
     return GrowthSample(
       id: doc.id,
-      farmId: data['farmId'] as String? ?? defaultFarmId,
+      farmId: data['farmId'] as String? ?? '',
       pondId: data['pondId'] as String? ?? '',
       date: (data['date'] as Timestamp?)?.toDate() ??
           DateTime.fromMillisecondsSinceEpoch(0),
@@ -277,20 +333,23 @@ class FirestoreService {
   // MORTALITY LOGS ------------------------------------------------------------
 
   Stream<List<MortalityLog>> watchMortalityLogs(String pondId) {
-    return _mortalityLogsCol
-        .where('pondId', isEqualTo: pondId)
-        .orderBy('dateTime', descending: true)
-        .snapshots()
-        .map(
-      (snapshot) {
-        return snapshot.docs.map(_mortalityLogFromDoc).toList();
-      },
-    );
+    return _whenSignedIn<List<MortalityLog>>([], (uid) {
+      return _mortalityLogsCol
+          .where('farmId', isEqualTo: uid)
+          .where('pondId', isEqualTo: pondId)
+          .orderBy('dateTime', descending: true)
+          .snapshots()
+          .map(
+        (snapshot) {
+          return snapshot.docs.map(_mortalityLogFromDoc).toList();
+        },
+      );
+    });
   }
 
   Future<void> addMortalityLog(MortalityLog log) async {
     final data = <String, dynamic>{
-      'farmId': log.farmId,
+      'farmId': currentFarmId,
       'pondId': log.pondId,
       'dateTime': log.dateTime,
       'count': log.count,
@@ -307,7 +366,7 @@ class FirestoreService {
     final data = doc.data()!;
     return MortalityLog(
       id: doc.id,
-      farmId: data['farmId'] as String? ?? defaultFarmId,
+      farmId: data['farmId'] as String? ?? '',
       pondId: data['pondId'] as String? ?? '',
       dateTime: (data['dateTime'] as Timestamp?)?.toDate() ??
           DateTime.fromMillisecondsSinceEpoch(0),
@@ -333,7 +392,10 @@ class FirestoreService {
         (pondData['avgBodyWeightGrams'] as num?)?.toDouble() ?? 0.0;
 
     final logsSnap =
-        await _mortalityLogsCol.where('pondId', isEqualTo: pondId).get();
+        await _mortalityLogsCol
+            .where('farmId', isEqualTo: currentFarmId)
+            .where('pondId', isEqualTo: pondId)
+            .get();
 
     int totalDead = 0;
     for (final doc in logsSnap.docs) {
@@ -390,28 +452,43 @@ class FirestoreService {
   // EXPENSES ------------------------------------------------------------------
 
   Stream<List<Expense>> watchExpenses() {
-    return _expensesCol
-        .where('farmId', isEqualTo: defaultFarmId)
-        .orderBy('date', descending: true)
-        .snapshots()
-        .map(
-      (snapshot) {
-        return snapshot.docs.map(_expenseFromDoc).toList();
-      },
-    );
+    return _whenSignedIn<List<Expense>>([], (uid) {
+      return _expensesCol
+          .where('farmId', isEqualTo: uid)
+          .orderBy('date', descending: true)
+          .snapshots()
+          .map(
+        (snapshot) {
+          return snapshot.docs.map(_expenseFromDoc).toList();
+        },
+      );
+    });
   }
 
-  Future<void> addExpense(Expense expense) {
+  Future<String> uploadExpenseReceipt({
+    required String farmId,
+    required File file,
+  }) async {
+    final fileName = 'receipt_${DateTime.now().millisecondsSinceEpoch}.jpg';
+    final ref = _storage.ref().child('expenses/$farmId/$fileName');
+    final task = await ref.putFile(file);
+    return task.ref.getDownloadURL();
+  }
+
+  Future<String> addExpense(Expense expense) async {
     final data = <String, dynamic>{
-      'farmId': expense.farmId,
+      'farmId': currentFarmId,
       'date': expense.date,
       'amount': expense.amount,
       'currency': expense.currency,
       'description': expense.description,
       'category': expense.category,
       'pondIds': expense.pondIds,
+      'imageUrl': expense.imageUrl,
     };
-    return _expensesCol.add(data);
+    final docRef = await _expensesCol.add(data);
+    await docRef.set({'expenseId': docRef.id}, SetOptions(merge: true));
+    return docRef.id;
   }
 
   Expense _expenseFromDoc(DocumentSnapshot<Map<String, dynamic>> doc) {
@@ -423,7 +500,7 @@ class FirestoreService {
 
     return Expense(
       id: doc.id,
-      farmId: data['farmId'] as String? ?? defaultFarmId,
+      farmId: data['farmId'] as String? ?? '',
       date: (data['date'] as Timestamp?)?.toDate() ??
           DateTime.fromMillisecondsSinceEpoch(0),
       amount: (data['amount'] as num?)?.toDouble() ?? 0,
@@ -431,6 +508,7 @@ class FirestoreService {
       description: data['description'] as String? ?? '',
       category: data['category'] as String? ?? 'Other',
       pondIds: pondIds,
+      imageUrl: data['imageUrl'] as String? ?? '',
     );
   }
 }

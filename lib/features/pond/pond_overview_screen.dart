@@ -7,7 +7,10 @@ import 'pond_form_screen.dart';
 import 'pond_list_screen.dart';
 import '../alerts/alerts_screen.dart';
 import '../mortality/mortality_log_screen.dart';
+import '../settings/language_settings_screen.dart';
 import '../../services/firestore_service.dart';
+import '../../services/growth_analysis_service.dart';
+import '../../services/growth_reference.dart';
 
 class PondOverviewScreen extends StatefulWidget {
   const PondOverviewScreen({super.key});
@@ -26,6 +29,32 @@ class _PondOverviewScreenState extends State<PondOverviewScreen> {
       builder: (context, snapshot) {
         final ponds = snapshot.data ?? [];
 
+        if (snapshot.hasError) {
+          return Scaffold(
+            appBar: AppBar(
+              title: Text(AppLocalizations.of(context)!.titlePondOverview),
+              centerTitle: true,
+              actions: [
+                IconButton(
+                  icon: const Icon(Icons.settings_outlined),
+                  onPressed: () => LanguageSettingsScreen.open(context),
+                ),
+              ],
+            ),
+            body: Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Text(
+                  'Could not load ponds.\n${snapshot.error}\n\n'
+                  'Check internet on the emulator, Firebase project '
+                  '(prawn-farm-app), and deploy Firestore indexes/rules.',
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            ),
+          );
+        }
+
         if (snapshot.connectionState == ConnectionState.waiting &&
             ponds.isEmpty) {
           return const Scaffold(
@@ -42,6 +71,12 @@ class _PondOverviewScreenState extends State<PondOverviewScreen> {
                 icon: const Icon(Icons.list_alt),
                 onPressed: () {},
               ),
+              actions: [
+                IconButton(
+                  icon: const Icon(Icons.settings_outlined),
+                  onPressed: () => LanguageSettingsScreen.open(context),
+                ),
+              ],
             ),
             floatingActionButton: FloatingActionButton(
               backgroundColor: const Color(0xFF005F73),
@@ -261,8 +296,13 @@ class _PondOverviewScreenState extends State<PondOverviewScreen> {
     );
   }
 
-  /// Growth trend card (placeholder without chart, to keep UI stable).
+  /// Growth trend card with actual growth sample chart.
   Widget _growthCard(Pond pond) {
+    final l10n = AppLocalizations.of(context)!;
+    final analysis = _growthAnalysisForPond(pond);
+    final statusColor = _growthStatusColor(analysis.status);
+    final localizedStatus = _localizedGrowthStatus(analysis.status);
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -283,33 +323,203 @@ class _PondOverviewScreenState extends State<PondOverviewScreen> {
           Row(
             children: [
               Text(
-                '${pond.avgBodyWeightGrams.toStringAsFixed(1)}g',
-                style: const TextStyle(
-                  fontSize: 28,
+                '${pond.avgBodyWeightGrams.toStringAsFixed(1)}g ($localizedStatus)',
+                style: TextStyle(
+                  fontSize: 24,
                   fontWeight: FontWeight.bold,
+                  color: statusColor,
                 ),
               ),
-              const SizedBox(width: 8),
-              const Icon(Icons.trending_up, color: Colors.green),
             ],
           ),
           const SizedBox(height: 4),
           Text(
-            AppLocalizations.of(context)!.growthChartComingSoon,
-            style: const TextStyle(color: Colors.grey),
+            l10n.growthExpectedShort(
+              analysis.expectedMin.toStringAsFixed(0),
+              analysis.expectedMax.toStringAsFixed(0),
+            ),
+            style: const TextStyle(color: Colors.grey, fontSize: 13),
           ),
+          if (analysis.status == GrowthStatus.slow) ...[
+            const SizedBox(height: 6),
+            StreamBuilder<List<FeedLog>>(
+              stream: FirestoreService.instance.watchFeedLogs(pond.id),
+              builder: (context, feedSnapshot) {
+                final feedLogs = feedSnapshot.data ?? const <FeedLog>[];
+                return StreamBuilder<List<PondLog>>(
+                  stream: FirestoreService.instance.watchWaterLogs(pond.id),
+                  builder: (context, waterSnapshot) {
+                    final waterLogs = waterSnapshot.data ?? const <PondLog>[];
+                    final contributors =
+                        GrowthAnalysisService.instance.evaluateSlowGrowthContributors(
+                      pond: pond,
+                      feedLogs: feedLogs,
+                      waterLogs: waterLogs,
+                    );
+                    final hasLikelyCause =
+                        contributors.feedLikelyLow || contributors.waterLikelyIssue;
+                    final message = hasLikelyCause
+                        ? l10n.growthCombinedSuggestion
+                        : '${l10n.growthSuggestionCheckFeedQty}. ${l10n.growthSuggestionCheckWaterQuality}.';
+                    return Text(
+                      message,
+                      style: TextStyle(
+                        color: Colors.orange.shade800,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    );
+                  },
+                );
+              },
+            ),
+          ],
           const SizedBox(height: 16),
-          Container(
-            height: 120,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: Colors.grey.shade100,
-              borderRadius: BorderRadius.circular(12),
+          SizedBox(
+            height: 140,
+            child: StreamBuilder<List<GrowthSample>>(
+              stream: FirestoreService.instance.watchGrowthSamples(pond.id),
+              builder: (context, snapshot) {
+                final samples = snapshot.data ?? [];
+                if (samples.isEmpty) {
+                  return Center(
+                    child: Text(
+                      AppLocalizations.of(context)!.noGrowthSamplesYet,
+                      style: const TextStyle(color: Colors.grey),
+                    ),
+                  );
+                }
+                return _buildOverviewGrowthChart(samples);
+              },
             ),
-            child: Text(
-              AppLocalizations.of(context)!.growthChartComingSoon,
-              style: const TextStyle(color: Colors.grey),
+          ),
+        ],
+      ),
+    );
+  }
+
+  GrowthAnalysisResult _growthAnalysisForPond(Pond pond) {
+    if (pond.expectedAbwMin > 0 &&
+        pond.expectedAbwMax > 0 &&
+        pond.growthStatus.isNotEmpty) {
+      final status = GrowthReference.parseStatus(pond.growthStatus);
+      final doc = GrowthAnalysisService.instance.daysOfCulture(
+        stockingDate: pond.stockingDate,
+      );
+      return GrowthAnalysisResult(
+        doc: doc,
+        closestDoc: GrowthReference.getClosestDoc(doc),
+        expectedMin: pond.expectedAbwMin,
+        expectedMax: pond.expectedAbwMax,
+        actualAbw: pond.avgBodyWeightGrams,
+        status: status,
+        growthGap: pond.growthGap,
+        quickSuggestions: const [],
+      );
+    }
+
+    return GrowthAnalysisService.instance.analyze(
+      stockingDate: pond.stockingDate,
+      actualAbw: pond.avgBodyWeightGrams,
+    );
+  }
+
+  Color _growthStatusColor(GrowthStatus status) {
+    switch (status) {
+      case GrowthStatus.good:
+        return Colors.green;
+      case GrowthStatus.slow:
+        return Colors.orange;
+      case GrowthStatus.excellent:
+        return Colors.blue;
+    }
+  }
+
+  String _localizedGrowthStatus(GrowthStatus status) {
+    final l10n = AppLocalizations.of(context)!;
+    switch (status) {
+      case GrowthStatus.good:
+        return l10n.growthStatusGood;
+      case GrowthStatus.slow:
+        return l10n.growthStatusSlow;
+      case GrowthStatus.excellent:
+        return l10n.growthStatusExcellent;
+    }
+  }
+
+  Widget _buildOverviewGrowthChart(List<GrowthSample> samples) {
+    final sorted = [...samples]..sort((a, b) => a.date.compareTo(b.date));
+    final spots = <FlSpot>[];
+    final docLabels = <int>[];
+    for (var i = 0; i < sorted.length; i++) {
+      spots.add(FlSpot(i.toDouble(), sorted[i].avgBodyWeightGrams));
+      final doc = DateTime.now().difference(sorted[i].date).inDays;
+      docLabels.add(doc < 0 ? 0 : doc);
+    }
+
+    if (spots.length == 1) {
+      final only = spots.first;
+      spots.add(FlSpot(1, only.y));
+      docLabels.add(docLabels.first);
+    }
+
+    var minY = spots.map((e) => e.y).reduce((a, b) => a < b ? a : b) - 1;
+    var maxY = spots.map((e) => e.y).reduce((a, b) => a > b ? a : b) + 1;
+    if (minY < 0) minY = 0;
+    if (maxY <= minY) maxY = minY + 2;
+
+    return LineChart(
+      LineChartData(
+        gridData: FlGridData(show: true, drawVerticalLine: false),
+        titlesData: FlTitlesData(
+          topTitles: const AxisTitles(
+            sideTitles: SideTitles(showTitles: false),
+          ),
+          rightTitles: const AxisTitles(
+            sideTitles: SideTitles(showTitles: false),
+          ),
+          bottomTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              reservedSize: 24,
+              getTitlesWidget: (value, meta) {
+                final index = value.toInt();
+                if (index < 0 || index >= docLabels.length) {
+                  return const SizedBox.shrink();
+                }
+                return Text(
+                  'D${docLabels[index]}',
+                  style: const TextStyle(fontSize: 10),
+                );
+              },
             ),
+          ),
+          leftTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              reservedSize: 28,
+              getTitlesWidget: (value, meta) => Text(
+                value.toStringAsFixed(0),
+                style: const TextStyle(fontSize: 10),
+              ),
+            ),
+          ),
+        ),
+        borderData: FlBorderData(
+          show: true,
+          border: Border.all(color: Colors.grey.shade300),
+        ),
+        minX: 0,
+        maxX: spots.last.x,
+        minY: minY,
+        maxY: maxY,
+        lineBarsData: [
+          LineChartBarData(
+            spots: spots,
+            isCurved: true,
+            color: const Color(0xFF005F73),
+            barWidth: 3,
+            dotData: FlDotData(show: true),
           ),
         ],
       ),
@@ -352,7 +562,7 @@ class _PondOverviewScreenState extends State<PondOverviewScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF94D2BD).withOpacity(0.3),
+        color: const Color(0xFF94D2BD).withValues(alpha: 0.3),
         borderRadius: BorderRadius.circular(16),
       ),
       child: Column(
@@ -492,37 +702,23 @@ class _PondOverviewScreenState extends State<PondOverviewScreen> {
     );
   }
 
+  Future<void> _savePond(Pond pond) async {
+    try {
+      await FirestoreService.instance.upsertPond(pond);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Could not save pond: $e')),
+      );
+    }
+  }
+
   void _openAddPond() {
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => PondFormScreen(
           mode: PondFormMode.create,
-          onSave: (pond) {
-            FirestoreService.instance.upsertPond(
-              pond.id.isEmpty
-                  ? Pond(
-                      id: '',
-                      farmId: pond.farmId,
-                      name: pond.name,
-                      location: pond.location,
-                      areaAcres: pond.areaAcres,
-                      species: pond.species,
-                      stockingDate: pond.stockingDate,
-                      stockingCount: pond.stockingCount,
-                      initialStockingDensity:
-                          pond.initialStockingDensity,
-                      daysOfCulture: pond.daysOfCulture,
-                      avgBodyWeightGrams: pond.avgBodyWeightGrams,
-                      survivalPercent: pond.survivalPercent,
-                      totalFeedTons: pond.totalFeedTons,
-                      fcr: pond.fcr,
-                      estimatedHarvestDate: pond.estimatedHarvestDate,
-                      estimatedBiomassTons:
-                          pond.estimatedBiomassTons,
-                    )
-                  : pond,
-            );
-          },
+          onSave: _savePond,
         ),
       ),
     );
@@ -533,34 +729,17 @@ class _PondOverviewScreenState extends State<PondOverviewScreen> {
       MaterialPageRoute(
         builder: (_) => PondListScreen(
           ponds: ponds,
-          onCreate: (pond) {
-            FirestoreService.instance.upsertPond(
-              Pond(
-                id: '',
-                farmId: pond.farmId,
-                name: pond.name,
-                location: pond.location,
-                areaAcres: pond.areaAcres,
-                species: pond.species,
-                stockingDate: pond.stockingDate,
-                stockingCount: pond.stockingCount,
-                initialStockingDensity:
-                    pond.initialStockingDensity,
-                daysOfCulture: pond.daysOfCulture,
-                avgBodyWeightGrams: pond.avgBodyWeightGrams,
-                survivalPercent: pond.survivalPercent,
-                totalFeedTons: pond.totalFeedTons,
-                fcr: pond.fcr,
-                estimatedHarvestDate: pond.estimatedHarvestDate,
-                estimatedBiomassTons: pond.estimatedBiomassTons,
-              ),
-            );
-          },
-          onUpdate: (updated) {
-            FirestoreService.instance.upsertPond(updated);
-          },
-          onDelete: (pond) {
-            FirestoreService.instance.deletePond(pond.id);
+          onCreate: _savePond,
+          onUpdate: _savePond,
+          onDelete: (pond) async {
+            try {
+              await FirestoreService.instance.deletePond(pond.id);
+            } catch (e) {
+              if (!mounted) return;
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Could not delete pond: $e')),
+              );
+            }
           },
         ),
       ),

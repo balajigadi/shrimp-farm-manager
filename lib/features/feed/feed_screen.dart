@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:prawn_farm_app/l10n/app_localizations.dart';
+import 'package:prawn_farm_app/utils/calendar_ranges.dart';
 import '../pond/pond_model.dart';
 import '../../services/firestore_service.dart';
+import 'feed_tray_suggestion.dart';
 
 class FeedScreen extends StatefulWidget {
   const FeedScreen({super.key});
@@ -22,8 +24,21 @@ class _FeedScreenState extends State<FeedScreen> {
   final _feedTypeController = TextEditingController();
   final _quantityController = TextEditingController();
 
+  FeedTrayStatus? _selectedTrayStatus;
+
+  void _onQuantityChanged() {
+    if (mounted) setState(() {});
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _quantityController.addListener(_onQuantityChanged);
+  }
+
   @override
   void dispose() {
+    _quantityController.removeListener(_onQuantityChanged);
     _feedTypeController.dispose();
     _quantityController.dispose();
     super.dispose();
@@ -34,6 +49,26 @@ class _FeedScreenState extends State<FeedScreen> {
     return StreamBuilder<List<Pond>>(
       stream: FirestoreService.instance.watchPonds(),
       builder: (context, pondSnapshot) {
+        if (pondSnapshot.hasError) {
+          return Scaffold(
+            appBar: AppBar(
+              title: Text(AppLocalizations.of(context)!.titleFeedManagement),
+              centerTitle: true,
+            ),
+            body: Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Text(
+                  'Could not load ponds.\n${pondSnapshot.error}\n\n'
+                  'Sign in as demo1@ or demo2@ for seeded data. '
+                  'Check emulator internet if Firestore is UNAVAILABLE.',
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            ),
+          );
+        }
+
         final ponds = pondSnapshot.data ?? [];
         if (ponds.isEmpty) {
           return Scaffold(
@@ -55,6 +90,26 @@ class _FeedScreenState extends State<FeedScreen> {
         return StreamBuilder<List<FeedLog>>(
           stream: FirestoreService.instance.watchFeedLogs(selectedPond.id),
           builder: (context, snapshot) {
+            if (snapshot.hasError) {
+              return Scaffold(
+                appBar: AppBar(
+                  title: Text(AppLocalizations.of(context)!.titleFeedManagement),
+                  centerTitle: true,
+                ),
+                body: Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Text(
+                      'Could not load feed logs.\n${snapshot.error}\n\n'
+                      'Deploy Firestore indexes if the error mentions an index. '
+                      'Otherwise check network on the emulator.',
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                ),
+              );
+            }
+
             final pondFeedLogs = snapshot.data ?? [];
             return DefaultTabController(
               length: 2,
@@ -137,24 +192,34 @@ class _FeedScreenState extends State<FeedScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'Log New Feed',
-                      style: TextStyle(
+                    Text(
+                      AppLocalizations.of(context)!.logNewFeed,
+                      style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
                     const SizedBox(height: 16),
                     _buildTextField(
-                      label: 'Feed Type',
+                      label: AppLocalizations.of(context)!.feedType,
                       hint: 'e.g., Probiotic Feed',
                       controller: _feedTypeController,
                     ),
                     _buildNumberField(
-                      label: 'Quantity (kg)',
+                      label: AppLocalizations.of(context)!.quantityKg,
                       hint: 'e.g., 12.5',
                       controller: _quantityController,
                     ),
+                    const SizedBox(height: 8),
+                    Text(
+                      AppLocalizations.of(context)!.checkTrayStatus,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 14,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    _buildTraySelector(context),
                     const SizedBox(height: 16),
                     SizedBox(
                       width: double.infinity,
@@ -167,15 +232,16 @@ class _FeedScreenState extends State<FeedScreen> {
                           ),
                         ),
                         onPressed: _saveFeedLog,
-                        child: const Text(
-                          'Add Feed Entry',
-                          style: TextStyle(
+                        child: Text(
+                          AppLocalizations.of(context)!.addFeedEntry,
+                          style: const TextStyle(
                             color: Colors.white,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
                       ),
                     ),
+                    _buildNextFeedSuggestionCard(context),
                   ],
                 ),
               ),
@@ -183,7 +249,7 @@ class _FeedScreenState extends State<FeedScreen> {
           ),
           const SizedBox(height: 24),
           Text(
-            "Recent Feed Inputs",
+            AppLocalizations.of(context)!.recentFeedInputs,
             style: Theme.of(context).textTheme.titleMedium,
           ),
           const SizedBox(height: 8),
@@ -219,7 +285,11 @@ class _FeedScreenState extends State<FeedScreen> {
                   child: ListTile(
                     leading: const Icon(Icons.set_meal),
                     title: Text(log.feedType),
-                    subtitle: Text(dtText),
+                    subtitle: Text(
+                      log.trayStatus == null
+                          ? dtText
+                          : '$dtText · ${_trayLabel(log.trayStatus!, context)}',
+                    ),
                     trailing: Text(
                       '${log.quantityKg.toStringAsFixed(1)} kg',
                       style: const TextStyle(fontWeight: FontWeight.w600),
@@ -244,17 +314,31 @@ class _FeedScreenState extends State<FeedScreen> {
         final farmFeedLogs = farmSnapshot.data ?? [];
 
         final now = DateTime.now();
-        final sevenDaysAgo = now.subtract(const Duration(days: 7));
+        final endDay = CalendarRanges.startOfDay(now);
+        final startDay =
+            CalendarRanges.windowStartInclusive(end: now, dayCount: 7);
 
         // Logs for the selected pond in the last 7 days.
         final pondLast7Days = pondFeedLogs
-            .where((log) => log.dateTime.isAfter(sevenDaysAgo))
+            .where(
+              (log) => CalendarRanges.isDateInInclusiveRange(
+                log.dateTime,
+                startDay,
+                endDay,
+              ),
+            )
             .toList()
           ..sort((a, b) => b.dateTime.compareTo(a.dateTime));
 
         // Logs for all ponds in the farm in the last 7 days.
         final farmLast7Days = farmFeedLogs
-            .where((log) => log.dateTime.isAfter(sevenDaysAgo))
+            .where(
+              (log) => CalendarRanges.isDateInInclusiveRange(
+                log.dateTime,
+                startDay,
+                endDay,
+              ),
+            )
             .toList()
           ..sort((a, b) => b.dateTime.compareTo(a.dateTime));
 
@@ -264,8 +348,15 @@ class _FeedScreenState extends State<FeedScreen> {
           0,
           (sum, l) => sum + l.quantityKg,
         );
-        final dailyAverage =
-            scopedLogs.isEmpty ? 0 : totalThisPeriod / 7.0;
+        // Match the chart: bars are cumulative kg per calendar day; average
+        // should be mean of those daily totals (not total ÷ 7).
+        final daysWithFeed =
+            CalendarRanges.distinctLocalDayCount(
+          scopedLogs.map((l) => l.dateTime),
+        );
+        final dailyAverage = daysWithFeed == 0
+            ? 0.0
+            : totalThisPeriod / daysWithFeed;
 
         // Label for current scope in dropdown.
         String pondLabel;
@@ -367,14 +458,14 @@ class _FeedScreenState extends State<FeedScreen> {
                 children: [
                   Expanded(
                     child: _summaryCard(
-                      title: 'Total This Period',
+                      title: AppLocalizations.of(context)!.totalThisPeriod,
                       value: '${totalThisPeriod.toStringAsFixed(1)} kg',
                     ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: _summaryCard(
-                      title: 'Daily Average',
+                      title: AppLocalizations.of(context)!.dailyAverage,
                       value: '${dailyAverage.toStringAsFixed(1)} kg',
                     ),
                   ),
@@ -382,9 +473,11 @@ class _FeedScreenState extends State<FeedScreen> {
               ),
               const SizedBox(height: 16),
               _feedChart(scopedLogs),
+              const SizedBox(height: 16),
+              _buildSevenDayInsightCard(context, scopedLogs),
               const SizedBox(height: 24),
               Text(
-                'Detailed Log',
+                AppLocalizations.of(context)!.detailedLog,
                 style: Theme.of(context).textTheme.titleMedium,
               ),
               const SizedBox(height: 8),
@@ -421,7 +514,11 @@ class _FeedScreenState extends State<FeedScreen> {
                       child: ListTile(
                         leading: const Icon(Icons.calendar_today_outlined),
                         title: Text('$dateText  •  ${log.feedType}'),
-                        subtitle: Text(timeText),
+                        subtitle: Text(
+                          log.trayStatus == null
+                              ? timeText
+                              : '$timeText · ${_trayLabel(log.trayStatus!, context)}',
+                        ),
                         trailing: Text(
                           '${log.quantityKg.toStringAsFixed(1)} kg',
                           style: const TextStyle(fontWeight: FontWeight.w600),
@@ -773,6 +870,257 @@ class _FeedScreenState extends State<FeedScreen> {
     }
   }
 
+  String _trayLabel(FeedTrayStatus status, BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    return switch (status) {
+      FeedTrayStatus.empty => l10n.trayEmpty,
+      FeedTrayStatus.partial => l10n.trayPartial,
+      FeedTrayStatus.full => l10n.trayFull,
+    };
+  }
+
+  String _nextFeedReasonText(FeedTrayStatus status, BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    return switch (status) {
+      FeedTrayStatus.empty => l10n.nextFeedReasonEmpty,
+      FeedTrayStatus.partial => l10n.nextFeedReasonPartial,
+      FeedTrayStatus.full => l10n.nextFeedReasonFull,
+    };
+  }
+
+  Widget _buildTraySelector(BuildContext context) {
+    Widget tile(FeedTrayStatus status, Color color, IconData icon) {
+      final selected = _selectedTrayStatus == status;
+      return Expanded(
+        child: Material(
+          color: selected ? color.withValues(alpha: 0.15) : Colors.grey.shade50,
+          borderRadius: BorderRadius.circular(12),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(12),
+            onTap: () => setState(() => _selectedTrayStatus = status),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(icon, color: color, size: 22),
+                  const SizedBox(height: 4),
+                  Text(
+                    _trayLabel(status, context),
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                      color: selected ? color : Colors.black87,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    return Row(
+      children: [
+        tile(FeedTrayStatus.empty, const Color(0xFF00C853), Icons.check_circle_outline),
+        const SizedBox(width: 8),
+        tile(FeedTrayStatus.partial, const Color(0xFFFF9800), Icons.remove_circle_outline),
+        const SizedBox(width: 8),
+        tile(FeedTrayStatus.full, const Color(0xFFE53935), Icons.cancel_outlined),
+      ],
+    );
+  }
+
+  Widget _buildNextFeedSuggestionCard(BuildContext context) {
+    final qty = double.tryParse(_quantityController.text.trim());
+    final tray = _selectedTrayStatus;
+    if (tray == null || qty == null || qty <= 0) {
+      return const SizedBox.shrink();
+    }
+    final suggested = suggestedNextFeedKg(qty, tray);
+    final l10n = AppLocalizations.of(context)!;
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 16),
+      child: Card(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: BorderSide(color: Colors.blue.shade100, width: 1),
+        ),
+        elevation: 2,
+        color: Colors.blue.shade50,
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(Icons.lightbulb_outline, color: Colors.blue.shade800),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      l10n.suggestedNextFeed,
+                      style: TextStyle(
+                        fontWeight: FontWeight.w700,
+                        color: Colors.blue.shade900,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Text(
+                '${suggested.toStringAsFixed(1)} kg',
+                style: TextStyle(
+                  fontSize: 26,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.blue.shade900,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                l10n.nextFeedReason,
+                style: const TextStyle(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 12,
+                  color: Colors.black54,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                _nextFeedReasonText(tray, context),
+                style: TextStyle(fontSize: 13, color: Colors.grey.shade800),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSevenDayInsightCard(BuildContext context, List<FeedLog> logs) {
+    final l10n = AppLocalizations.of(context)!;
+    if (logs.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    final daily = dailyTotalsChronological(logs);
+    final avgFeed = daily.isEmpty
+        ? 0.0
+        : daily.reduce((a, b) => a + b) / daily.length;
+
+    final trend = trendFromDailyTotals(daily);
+    var trendLabel = l10n.trendStable;
+    var trendEmoji = '➡️';
+    if (trend == FeedTrendHint.increasing) {
+      trendLabel = l10n.trendIncreasing;
+      trendEmoji = '📈';
+    } else if (trend == FeedTrendHint.decreasing) {
+      trendLabel = l10n.trendDecreasing;
+      trendEmoji = '📉';
+    }
+
+    var emptyC = 0;
+    var partialC = 0;
+    var fullC = 0;
+    for (final log in logs) {
+      switch (log.trayStatus) {
+        case FeedTrayStatus.empty:
+          emptyC++;
+        case FeedTrayStatus.partial:
+          partialC++;
+        case FeedTrayStatus.full:
+          fullC++;
+        case null:
+          break;
+      }
+    }
+    final trayLogged = emptyC + partialC + fullC;
+
+    final String insightBody;
+    if (trayLogged == 0) {
+      insightBody = l10n.feedInsightSuggestOk;
+    } else if (fullC >= emptyC && fullC >= partialC && fullC >= 2) {
+      insightBody = l10n.feedInsightSuggestDecrease;
+    } else if (emptyC > fullC && emptyC >= 2) {
+      insightBody = l10n.feedInsightSuggestIncrease;
+    } else {
+      insightBody = l10n.feedInsightSuggestOk;
+    }
+
+    return Card(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      elevation: 3,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Text('📊 ', style: TextStyle(fontSize: 18)),
+                Text(
+                  l10n.feedInsightTitle,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Text(
+              '${l10n.feedInsightAvg}: ${avgFeed.toStringAsFixed(1)} kg',
+              style: const TextStyle(fontSize: 14),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              '${l10n.feedInsightTrend}: $trendLabel $trendEmoji',
+              style: const TextStyle(fontSize: 14),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              l10n.feedInsightTrayPattern,
+              style: const TextStyle(
+                fontWeight: FontWeight.w600,
+                fontSize: 13,
+                color: Colors.black54,
+              ),
+            ),
+            const SizedBox(height: 4),
+            if (trayLogged == 0)
+              Text(
+                l10n.feedInsightNoTrayData,
+                style: TextStyle(fontSize: 13, color: Colors.grey.shade700),
+              )
+            else
+              Text(
+                l10n.feedInsightTrayLine(emptyC, partialC, fullC),
+                style: TextStyle(fontSize: 13, color: Colors.grey.shade800),
+              ),
+            const SizedBox(height: 12),
+            Text(
+              l10n.feedInsightSuggestion,
+              style: const TextStyle(
+                fontWeight: FontWeight.w600,
+                fontSize: 13,
+                color: Colors.black54,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              insightBody,
+              style: TextStyle(fontSize: 13, color: Colors.grey.shade800),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   void _saveFeedLog() {
     if (!_formKey.currentState!.validate()) {
       return;
@@ -785,14 +1133,23 @@ class _FeedScreenState extends State<FeedScreen> {
       );
       return;
     }
+    if (_selectedTrayStatus == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(AppLocalizations.of(context)!.selectTrayBeforeSave),
+        ),
+      );
+      return;
+    }
 
     final log = FeedLog(
       id: '',
-      farmId: FirestoreService.defaultFarmId,
+      farmId: FirestoreService.instance.currentFarmId,
       pondId: _selectedPondId!,
       dateTime: _selectedDateTime,
       feedType: _feedTypeController.text.trim(),
       quantityKg: qty,
+      trayStatus: _selectedTrayStatus,
     );
 
     FirestoreService.instance.addFeedLog(log);
@@ -800,6 +1157,7 @@ class _FeedScreenState extends State<FeedScreen> {
     setState(() {
       _feedTypeController.clear();
       _quantityController.clear();
+      _selectedTrayStatus = null;
     });
 
     ScaffoldMessenger.of(context).showSnackBar(

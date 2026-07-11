@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:prawn_farm_app/l10n/app_localizations.dart';
+import 'package:prawn_farm_app/utils/calendar_ranges.dart';
 import '../pond/pond_model.dart';
 import '../../services/firestore_service.dart';
 import '../settings/language_settings_screen.dart';
@@ -36,6 +37,12 @@ class _ReportsScreenState extends State<ReportsScreen> {
             appBar: AppBar(
               title: Text(AppLocalizations.of(context)!.titleReports),
               centerTitle: true,
+              actions: [
+                IconButton(
+                  icon: const Icon(Icons.settings),
+                  onPressed: () => LanguageSettingsScreen.open(context),
+                ),
+              ],
             ),
             body: Center(
               child: Text(
@@ -61,11 +68,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
               IconButton(
                 icon: const Icon(Icons.settings),
                 onPressed: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => const LanguageSettingsScreen(),
-                    ),
-                  );
+                  LanguageSettingsScreen.open(context);
                 },
               ),
             ],
@@ -369,7 +372,9 @@ class _ReportsScreenState extends State<ReportsScreen> {
   // Section 3 – Feed Summary (last 7 days)
   Widget _feedSummarySection(Pond pond) {
     final now = DateTime.now();
-    final sevenDaysAgo = now.subtract(const Duration(days: 7));
+    final endDay = CalendarRanges.startOfDay(now);
+    final startDay =
+        CalendarRanges.windowStartInclusive(end: now, dayCount: 7);
 
     return Card(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -380,14 +385,24 @@ class _ReportsScreenState extends State<ReportsScreen> {
           stream: FirestoreService.instance.watchFeedLogs(pond.id),
           builder: (context, snapshot) {
             final logs = (snapshot.data ?? [])
-                .where((l) => l.dateTime.isAfter(sevenDaysAgo))
+                .where(
+                  (l) => CalendarRanges.isDateInInclusiveRange(
+                    l.dateTime,
+                    startDay,
+                    endDay,
+                  ),
+                )
                 .toList()
               ..sort((a, b) => a.dateTime.compareTo(b.dateTime));
 
             final total = logs.fold<double>(
                 0, (sum, l) => sum + l.quantityKg);
-            final dailyAverage =
-                logs.isEmpty ? 0 : total / 7.0;
+            final daysWithFeed = CalendarRanges.distinctLocalDayCount(
+              logs.map((l) => l.dateTime),
+            );
+            final dailyAverage = daysWithFeed == 0
+                ? 0.0
+                : total / daysWithFeed;
 
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -512,7 +527,9 @@ class _ReportsScreenState extends State<ReportsScreen> {
   // Section 4 – Water Quality Summary (last 7 days averages)
   Widget _waterSummarySection(Pond pond) {
     final now = DateTime.now();
-    final sevenDaysAgo = now.subtract(const Duration(days: 7));
+    final endDay = CalendarRanges.startOfDay(now);
+    final startDay =
+        CalendarRanges.windowStartInclusive(end: now, dayCount: 7);
 
     return Card(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -523,7 +540,13 @@ class _ReportsScreenState extends State<ReportsScreen> {
           stream: FirestoreService.instance.watchWaterLogs(pond.id),
           builder: (context, snapshot) {
             final logs = (snapshot.data ?? [])
-                .where((l) => l.date.isAfter(sevenDaysAgo))
+                .where(
+                  (l) => CalendarRanges.isDateInInclusiveRange(
+                    l.date,
+                    startDay,
+                    endDay,
+                  ),
+                )
                 .toList();
 
             if (logs.isEmpty) {
@@ -557,6 +580,8 @@ class _ReportsScreenState extends State<ReportsScreen> {
                 avg(logs.map((e) => e.ammoniaPpm).toList());
             final tempAvg =
                 avg(logs.map((e) => e.waterTempC).toList());
+            final hardAvg =
+                avg(logs.map((e) => e.hardnessMgL).toList());
 
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -588,6 +613,17 @@ class _ReportsScreenState extends State<ReportsScreen> {
                       AppLocalizations.of(context)!.tempAvg,
                       '${tempAvg.toStringAsFixed(1)} °C',
                     ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    _summaryItem(
+                      AppLocalizations.of(context)!.hardnessAvg,
+                      '${hardAvg.toStringAsFixed(0)} mg/L',
+                    ),
+                    const SizedBox(width: 8),
                   ],
                 ),
               ],

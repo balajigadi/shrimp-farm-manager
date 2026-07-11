@@ -26,3 +26,7 @@ ios/Flutter/Flutter.podspec
 *.keystore
 *.jks
 serviceAccountKey.json
+google-services_old.json
+
+# Node
+node_modules/

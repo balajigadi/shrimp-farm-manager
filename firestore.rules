@@ -1,0 +1,120 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function requestFarmMatchesUid() {
+      return signedIn() && request.resource.data.farmId == request.auth.uid;
+    }
+
+    function resourceFarmMatchesUid() {
+      return signedIn() && resource.data.farmId == request.auth.uid;
+    }
+
+    function userDoc() {
+      return get(/databases/$(database)/documents/userSettings/$(request.auth.uid)).data;
+    }
+
+    function isTrader() {
+      return signedIn() && userDoc().role == 'trader';
+    }
+
+    function farmerRegion() {
+      return userDoc().region;
+    }
+
+    function isFarmer() {
+      return signedIn() && userDoc().role == 'farmer';
+    }
+
+    function farmerInterestCountUpdate() {
+      return isFarmer()
+        && requirementMatchesFarmerRegion()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['interestedCount'])
+        && request.resource.data.interestedCount == resource.data.get('interestedCount', 0) + 1;
+    }
+
+    function requirementMatchesFarmerRegion() {
+      return signedIn()
+        && farmerRegion() in resource.data.region;
+    }
+
+    // User-specific app settings + profile (role, intent, region, fcmToken).
+    match /userSettings/{uid} {
+      allow read, write: if signedIn() && request.auth.uid == uid;
+    }
+
+    // Buyer requirements posted by traders.
+    // Rate limit: Firestore rules cannot cap daily posts per trader — use a
+    // Cloud Function on create to enforce e.g. max 5 requirements/day.
+    match /requirements/{docId} {
+      allow create: if isTrader()
+        && request.resource.data.traderId == request.auth.uid
+        && request.resource.data.status == 'open';
+
+      allow read: if signedIn() && (
+        resource.data.traderId == request.auth.uid
+        || requirementMatchesFarmerRegion()
+      );
+
+      allow update: if (isTrader()
+        && resource.data.traderId == request.auth.uid
+        && request.resource.data.traderId == request.auth.uid)
+        || farmerInterestCountUpdate();
+
+      allow delete: if isTrader()
+        && resource.data.traderId == request.auth.uid;
+
+      match /interested/{farmerUid} {
+        allow read: if signedIn() && (
+          request.auth.uid == farmerUid
+          || get(/databases/$(database)/documents/requirements/$(docId)).data.traderId == request.auth.uid
+        );
+
+        allow create, update: if isFarmer()
+          && request.auth.uid == farmerUid
+          && farmerUid == request.resource.data.farmerUid
+          && get(/databases/$(database)/documents/requirements/$(docId)).data.status == 'open'
+          && farmerRegion() in get(/databases/$(database)/documents/requirements/$(docId)).data.region;
+      }
+    }
+
+    // Farm-scoped collections.
+    match /ponds/{docId} {
+      allow create: if requestFarmMatchesUid();
+      allow read, update, delete: if resourceFarmMatchesUid();
+    }
+
+    match /waterLogs/{docId} {
+      allow create: if requestFarmMatchesUid();
+      allow read, update, delete: if resourceFarmMatchesUid();
+    }
+
+    match /feedLogs/{docId} {
+      allow create: if requestFarmMatchesUid();
+      allow read, update, delete: if resourceFarmMatchesUid();
+    }
+
+    match /growthSamples/{docId} {
+      allow create: if requestFarmMatchesUid();
+      allow read, update, delete: if resourceFarmMatchesUid();
+    }
+
+    match /mortalityLogs/{docId} {
+      allow create: if requestFarmMatchesUid();
+      allow read, update, delete: if resourceFarmMatchesUid();
+    }
+
+    match /expenses/{docId} {
+      allow create: if requestFarmMatchesUid();
+      allow read, update, delete: if resourceFarmMatchesUid();
+    }
+
+    // Default deny.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

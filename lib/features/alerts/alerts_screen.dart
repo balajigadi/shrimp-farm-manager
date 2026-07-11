@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:prawn_farm_app/l10n/app_localizations.dart';
 import 'package:prawn_farm_app/services/notification_service.dart';
 
 class AlertsScreen extends StatelessWidget {
@@ -6,16 +7,17 @@ class AlertsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Alerts'),
+        title: Text(l10n.alertsTitle),
         centerTitle: true,
       ),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          const Text(
-            'Operational reminders',
+          Text(
+            l10n.alertsOperationalReminders,
             style: TextStyle(
               fontSize: 14,
               color: Colors.grey,
@@ -26,45 +28,43 @@ class AlertsScreen extends StatelessWidget {
           _AlertTile(
             icon: Icons.set_meal,
             iconColor: const Color(0xFF00C853),
-            title: 'Feed Reminder',
-            subtitle: '6:00, 11:00, 16:00, 21:00',
-            body: 'Tap to log feed',
+            title: l10n.alertFeedReminderTitle,
+            subtitle: l10n.alertFeedReminderSchedule,
+            body: l10n.alertFeedReminderBody,
           ),
           _AlertTile(
             icon: Icons.opacity,
             iconColor: const Color(0xFF2196F3),
-            title: 'Water Quality Check',
-            subtitle: 'Daily 7:00 AM',
-            body: 'Test pH, DO, Ammonia, Temperature',
+            title: l10n.alertWaterCheckTitle,
+            subtitle: l10n.alertWaterCheckSchedule,
+            body: l10n.alertWaterCheckBody,
           ),
           _AlertTile(
             icon: Icons.show_chart,
             iconColor: const Color(0xFF9C27B0),
-            title: 'Growth Sampling Due',
-            subtitle: 'Weekly Monday 9:00 AM',
-            body: 'Take shrimp sample and record growth',
+            title: l10n.alertGrowthSamplingTitle,
+            subtitle: l10n.alertGrowthSamplingSchedule,
+            body: l10n.alertGrowthSamplingBody,
           ),
           _AlertTile(
             icon: Icons.warning_amber_rounded,
             iconColor: Colors.orange,
-            title: 'Mortality Check',
-            subtitle: 'Daily 7:30 AM',
-            body: 'Check ponds and log mortality',
+            title: l10n.alertMortalityTitle,
+            subtitle: l10n.alertMortalitySchedule,
+            body: l10n.alertMortalityBody,
           ),
           const SizedBox(height: 24),
           const Divider(),
           const SizedBox(height: 8),
           ListTile(
             leading: const Icon(Icons.notifications_active_outlined),
-            title: const Text('Test notification'),
-            subtitle: const Text('Send a test alert now'),
+            title: Text(l10n.alertsTestNotificationTitle),
+            subtitle: Text(l10n.alertsTestNotificationSubtitle),
             onTap: () async {
               await NotificationService.instance.showTestNotificationNow();
               if (context.mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Test notification sent. Check status bar.'),
-                  ),
+                  SnackBar(content: Text(l10n.alertsTestNotificationSent)),
                 );
               }
             },
@@ -101,7 +101,7 @@ class _AlertTile extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             CircleAvatar(
-              backgroundColor: iconColor.withOpacity(0.15),
+              backgroundColor: iconColor.withValues(alpha: 0.15),
               child: Icon(icon, color: iconColor, size: 24),
             ),
             const SizedBox(width: 16),
