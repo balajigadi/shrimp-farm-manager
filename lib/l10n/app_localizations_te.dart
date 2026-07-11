@@ -212,6 +212,9 @@ class AppLocalizationsTe extends AppLocalizations {
   String get temperature => 'ఉష్ణోగ్రత';
 
   @override
+  String get hardness => 'కాఠిన్యం';
+
+  @override
   String get good => 'బాగుంది';
 
   @override
@@ -386,6 +389,9 @@ class AppLocalizationsTe extends AppLocalizations {
   String get temperatureC => 'ఉష్ణోగ్రత (°C)';
 
   @override
+  String get hardnessMgL => 'కాఠిన్యం (mg/L)';
+
+  @override
   String get feedReportTab => 'మేత నివేదిక';
 
   @override
@@ -433,6 +439,9 @@ class AppLocalizationsTe extends AppLocalizations {
   String get tempAvg => 'ఉష్ణోగ్రత సగటు';
 
   @override
+  String get hardnessAvg => 'కాఠిన్యం సగటు';
+
+  @override
   String get noGrowthSamplesYet => 'ఇంకా వృద్ధి నమూనాలు లేవు.';
 
   @override
@@ -471,4 +480,568 @@ class AppLocalizationsTe extends AppLocalizations {
 
   @override
   String get deletePond => 'చెరువును తొలగించండి';
+
+  @override
+  String get checkTrayStatus => 'ట్రే స్థితి (చెక్ చేయండి)';
+
+  @override
+  String get trayEmpty => 'ఖాళీ';
+
+  @override
+  String get trayPartial => 'కొంచెం మిగిలింది';
+
+  @override
+  String get trayFull => 'చాలా మిగిలింది';
+
+  @override
+  String get suggestedNextFeed => 'సూచించిన తదుపరి మేత';
+
+  @override
+  String get nextFeedReason => 'కారణం';
+
+  @override
+  String get nextFeedReasonEmpty =>
+      'ట్రే ఖాళీ — రొయ్యలు బాగా తిన్నట్లు; తదుపరి మేత కొంచెం పెంచండి.';
+
+  @override
+  String get nextFeedReasonPartial =>
+      'ట్రేలో కొంచెం మిగిలింది — మొత్తం దగ్గరగా ఉంది; అవసరమైతే చిన్న మార్పు.';
+
+  @override
+  String get nextFeedReasonFull =>
+      'ట్రేలో ఇంకా మేత మిగిలింది — వృధా తగ్గించడానికి తదుపరి మేత తగ్గించండి.';
+
+  @override
+  String get feedInsightTitle => '7 రోజుల మేత అంతర్దృష్టి';
+
+  @override
+  String get feedInsightAvg => 'సగటు మేత (నమోదైన రోజులు)';
+
+  @override
+  String get feedInsightTrend => 'ధోరణి';
+
+  @override
+  String get trendIncreasing => 'పెరుగుతోంది';
+
+  @override
+  String get trendDecreasing => 'తగ్గుతోంది';
+
+  @override
+  String get trendStable => 'స్థిరంగా';
+
+  @override
+  String get feedInsightTrayPattern => 'ట్రే నమూనా (నమోదులు)';
+
+  @override
+  String feedInsightTrayLine(int emptyCount, int partialCount, int fullCount) {
+    return 'ఖాళీ: $emptyCount  ·  కొంచెం: $partialCount  ·  నిండి: $fullCount';
+  }
+
+  @override
+  String get feedInsightSuggestion => 'సూచన';
+
+  @override
+  String get feedInsightSuggestIncrease =>
+      'మేత కొంచెం తక్కువగా ఉండవచ్చు — కొంచెం పెంచడం పరిగణించండి.';
+
+  @override
+  String get feedInsightSuggestDecrease =>
+      'ఎక్కువగా మిగులుతోంది — కొంచెం తగ్గించడం పరిగణించండి.';
+
+  @override
+  String get feedInsightSuggestOk => 'ఈ వారం నమూనా సరిగ్గా కనిపిస్తోంది.';
+
+  @override
+  String get feedInsightNoTrayData =>
+      'ట్రే నమోదు చేస్తే ఇక్కడ నమూనా కనిపిస్తుంది.';
+
+  @override
+  String get selectTrayBeforeSave =>
+      'సేవ్ చేయడానికి ముందు ట్రే స్థితి ఎంచుకోండి.';
+
+  @override
+  String get logNewFeed => 'కొత్త మేత నమోదు';
+
+  @override
+  String get growthAnalysisTitle => 'వృద్ధి విశ్లేషణ';
+
+  @override
+  String growthAnalysisExpected(String min, String max) {
+    return 'అంచనా: $min-$max గ్రా';
+  }
+
+  @override
+  String growthAnalysisActual(String actual) {
+    return 'నిజమైనది: $actual గ్రా';
+  }
+
+  @override
+  String growthAnalysisStatus(String status) {
+    return 'స్థితి: $status';
+  }
+
+  @override
+  String get growthStatusGood => 'మంచిది';
+
+  @override
+  String get growthStatusSlow => 'నెమ్మది';
+
+  @override
+  String get growthStatusExcellent => 'అత్యుత్తమం';
+
+  @override
+  String get growthSuggestionCheckFeedQty => 'మేత పరిమాణాన్ని తనిఖీ చేయండి';
+
+  @override
+  String get growthSuggestionCheckWaterQuality => 'నీటి నాణ్యతను తనిఖీ చేయండి';
+
+  @override
+  String get growthSuggestionOnTrack => 'వృద్ధి సరిగా సాగుతోంది';
+
+  @override
+  String get growthSuggestionAboveExpected => 'వృద్ధి అంచనాకంటే మెరుగ్గా ఉంది';
+
+  @override
+  String get growthCombinedSuggestion =>
+      'వృద్ధి అంచనాకంటే తక్కువగా ఉంది. తక్కువ మేత లేదా నీటి సమస్య కారణం కావచ్చు.';
+
+  @override
+  String growthExpectedShort(String min, String max) {
+    return 'అంచనా: $min-$maxగ్రా';
+  }
+
+  @override
+  String get settingsTitle => 'సెట్టింగులు';
+
+  @override
+  String get settingsAccountSection => 'అకౌంట్';
+
+  @override
+  String get settingsLanguage => 'భాష';
+
+  @override
+  String get settingsLanguageEnglish => 'ఇంగ్లీష్';
+
+  @override
+  String get settingsLanguageTelugu => 'తెలుగు';
+
+  @override
+  String get settingsResetPassword => 'పాస్‌వర్డ్ రీసెట్';
+
+  @override
+  String get settingsNotificationsSection => 'నోటిఫికేషన్లు';
+
+  @override
+  String get settingsDailyReminders => 'రోజువారీ రిమైండర్లు';
+
+  @override
+  String get settingsCheckWaterQuality => 'నీటి నాణ్యత తనిఖీ';
+
+  @override
+  String get settingsAlertTime => 'అలర్ట్ సమయం';
+
+  @override
+  String get settingsFeedThePond => 'కొలనుకు మేత ఇవ్వండి';
+
+  @override
+  String get settingsTime1 => 'సమయం 1';
+
+  @override
+  String get settingsTime2 => 'సమయం 2';
+
+  @override
+  String get settingsTime3 => 'సమయం 3';
+
+  @override
+  String get settingsTime4 => 'సమయం 4';
+
+  @override
+  String get settingsTime5 => 'సమయం 5';
+
+  @override
+  String get settingsLogExpenses => 'ఖర్చులు నమోదు';
+
+  @override
+  String get settingsNotSet => 'సెట్ చేయలేదు';
+
+  @override
+  String get settingsApplying => 'వర్తింపజేస్తోంది...';
+
+  @override
+  String get settingsApplyAlertSettings => 'అలర్ట్ సెట్టింగులు వర్తింపజేయండి';
+
+  @override
+  String get settingsTestAlerts => 'టెస్ట్ అలర్ట్స్';
+
+  @override
+  String get settingsSendTestNotificationNow =>
+      'ఇప్పుడే టెస్ట్ నోటిఫికేషన్ పంపండి';
+
+  @override
+  String get settingsTestNotificationSent => 'టెస్ట్ నోటిఫికేషన్ పంపబడింది.';
+
+  @override
+  String get settingsTestAlertIn10Sec => '10 సెకన్లలో టెస్ట్ అలర్ట్';
+
+  @override
+  String get settingsScheduleNotificationIn10Seconds =>
+      '10 సెకన్లలో నోటిఫికేషన్ షెడ్యూల్ చేయండి';
+
+  @override
+  String get settingsNotificationIn10Seconds =>
+      '10 సెకన్లలో నోటిఫికేషన్ వస్తుంది.';
+
+  @override
+  String get settingsAppSection => 'యాప్';
+
+  @override
+  String get settingsHelpSupport => 'సహాయం & మద్దతు';
+
+  @override
+  String get settingsAbout => 'గురించి';
+
+  @override
+  String get settingsAppVersion => 'యాప్ వెర్షన్';
+
+  @override
+  String get settingsLogOut => 'లాగ్ అవుట్';
+
+  @override
+  String get alertSettingsUpdated => 'అలర్ట్ సెట్టింగులు నవీకరించబడ్డాయి.';
+
+  @override
+  String get couldNotUpdateAlerts => 'అలర్ట్స్ నవీకరించలేకపోయాం';
+
+  @override
+  String get currentAccountNoEmail => 'ప్రస్తుత అకౌంట్‌కు ఇమెయిల్ లేదు.';
+
+  @override
+  String passwordResetEmailSent(String email) {
+    return 'పాస్‌వర్డ్ రీసెట్ ఇమెయిల్ $email కు పంపబడింది';
+  }
+
+  @override
+  String get alertsTitle => 'అలర్ట్స్';
+
+  @override
+  String get alertsOperationalReminders => 'ఆపరేషనల్ రిమైండర్లు';
+
+  @override
+  String get alertFeedReminderTitle => 'మేత రిమైండర్';
+
+  @override
+  String get alertFeedReminderSchedule => '6:00, 11:00, 16:00, 21:00';
+
+  @override
+  String get alertFeedReminderBody => 'మేత నమోదు చేయడానికి ట్యాప్ చేయండి';
+
+  @override
+  String get alertWaterCheckTitle => 'నీటి నాణ్యత తనిఖీ';
+
+  @override
+  String get alertWaterCheckSchedule => 'రోజూ 7:00 AM';
+
+  @override
+  String get alertWaterCheckBody => 'pH, DO, అమోనియా, ఉష్ణోగ్రత పరీక్షించండి';
+
+  @override
+  String get alertGrowthSamplingTitle => 'వృద్ధి నమూనా సమయం';
+
+  @override
+  String get alertGrowthSamplingSchedule => 'ప్రతి సోమవారం 9:00 AM';
+
+  @override
+  String get alertGrowthSamplingBody =>
+      'రొయ్యల నమూనా తీసి వృద్ధిని నమోదు చేయండి';
+
+  @override
+  String get alertMortalityTitle => 'మరణాల తనిఖీ';
+
+  @override
+  String get alertMortalitySchedule => 'రోజూ 7:30 AM';
+
+  @override
+  String get alertMortalityBody => 'కొలనులు చూసి మరణాలు నమోదు చేయండి';
+
+  @override
+  String get alertsTestNotificationTitle => 'టెస్ట్ నోటిఫికేషన్';
+
+  @override
+  String get alertsTestNotificationSubtitle => 'ఇప్పుడే టెస్ట్ అలర్ట్ పంపండి';
+
+  @override
+  String get alertsTestNotificationSent =>
+      'టెస్ట్ నోటిఫికేషన్ పంపబడింది. స్టేటస్ బార్ చూడండి.';
+
+  @override
+  String get waterNoDataForPondYet => 'ఈ చెరువుకు ఇంకా నీటి నాణ్యత డేటా లేదు.';
+
+  @override
+  String get waterNoDataForPondAndRange =>
+      'ఎంచుకున్న చెరువు మరియు తేదీ పరిధికి నీటి నాణ్యత డేటా లేదు.';
+
+  @override
+  String get growthSampleSizeOptional => 'నమూనా పరిమాణం (ఐచ్చికం)';
+
+  @override
+  String get saving => 'సేవ్ చేస్తోంది...';
+
+  @override
+  String get couldNotSaveSample => 'నమూనాను సేవ్ చేయలేకపోయాం';
+
+  @override
+  String get expenseTakePhoto => 'ఫోటో తీయండి';
+
+  @override
+  String get expenseUploadFromGallery => 'గ్యాలరీ నుండి అప్లోడ్ చేయండి';
+
+  @override
+  String get expenseRemoveReceipt => 'తొలగించు';
+
+  @override
+  String get expenseReceiptPreviewTitle => 'రసీదు';
+
+  @override
+  String get expenseReceiptLoadFailed => 'రసీదు చిత్రం లోడ్ కాలేదు';
+
+  @override
+  String get expenseSaveFailed => 'ఖర్చు సేవ్ చేయడంలో విఫలమైంది';
+
+  @override
+  String get close => 'మూసివేయండి';
+
+  @override
+  String get recentMortality => 'ఇటీవలి మరణాలు';
+
+  @override
+  String get recordMortality => 'మరణాలు నమోదు చేయండి';
+
+  @override
+  String get noMortalityToday => 'ఈ రోజు మరణాలు లేవు';
+
+  @override
+  String get requiredField => 'అవసరం';
+
+  @override
+  String get enterNonNegativeNumber =>
+      'సున్నా లేదా అంతకంటే ఎక్కువ సంఖ్యను నమోదు చేయండి';
+
+  @override
+  String get tabMarket => 'మార్కెట్';
+
+  @override
+  String get titleMarket => 'కొనుగోలుదారు అవసరాలు';
+
+  @override
+  String get onboardingWelcome => 'స్వాగతం';
+
+  @override
+  String get onboardingRoleTitle => 'మీకు ఏది సరిపోతుంది?';
+
+  @override
+  String get onboardingRoleSubtitle =>
+      'మీ అవసరాలకు అనుగుణంగా యాప్ అమర్చబడుతుంది.';
+
+  @override
+  String get roleFarmer => 'రైతు';
+
+  @override
+  String get roleFarmerDesc => 'చేప చెరువులు నిర్వహిస్తారు';
+
+  @override
+  String get roleSupervisor => 'సూపర్వైజర్';
+
+  @override
+  String get roleSupervisorDesc => 'ఫారం కార్యకలాపాలను పర్యవేక్షిస్తారు';
+
+  @override
+  String get roleTrader => 'వ్యాపారి';
+
+  @override
+  String get roleTraderDesc => 'రైతుల నుండి చేపలు కొనుగోలు చేస్తారు';
+
+  @override
+  String get onboardingContinue => 'కొనసాగించు';
+
+  @override
+  String get onboardingFarmerSetup => 'రైతు సెటప్';
+
+  @override
+  String get onboardingSupervisorSetup => 'సూపర్వైజర్ సెటప్';
+
+  @override
+  String get onboardingIntentTitle =>
+      'మీరు యాప్‌ను ఏందుకు ఉపయోగించాలనుకుంటున్నారు?';
+
+  @override
+  String get intentBuyerNotifications => 'కొనుగోలుదారు నోటిఫికేషన్లు';
+
+  @override
+  String get intentBuyerNotificationsDesc =>
+      'మీ ప్రాంతంలో వ్యాపారి అవసరాలు చూడండి';
+
+  @override
+  String get intentManageFarm => 'నా ఫారం నిర్వహించు';
+
+  @override
+  String get intentManageFarmDesc =>
+      'చెరువులు, ఆహారం, నీరు, ఖర్చులు ట్రాక్ చేయండి';
+
+  @override
+  String get intentBoth => 'రెండూ';
+
+  @override
+  String get intentBothDesc => 'మార్కెట్ + పూర్తి ఫారం నిర్వహణ';
+
+  @override
+  String get onboardingRegionTitle => 'మీ ప్రాంతం (మండలం)';
+
+  @override
+  String get onboardingRegionSubtitle =>
+      'మీ మండలానికి సరిపోయే కొనుగోలు అవసరాల కోసం.';
+
+  @override
+  String get onboardingRegionLabel => 'మండలం / ప్రాంతం';
+
+  @override
+  String get onboardingFinish => 'ప్రారంభించండి';
+
+  @override
+  String get onboardingTraderVerify => 'ఫోన్ ధృవీకరణ';
+
+  @override
+  String get onboardingTraderVerifyDesc =>
+      'పోస్ట్ చేయడానికి ముందు వ్యాపారులు ఫోన్ నంబర్ ధృవీకరించాలి.';
+
+  @override
+  String get traderDisplayName => 'వ్యాపార / ట్రేడర్ పేరు';
+
+  @override
+  String get traderPhone => 'ఫోన్ నంబర్';
+
+  @override
+  String get otpCode => 'OTP కోడ్';
+
+  @override
+  String get sendOtp => 'OTP పంపు';
+
+  @override
+  String get verifyAndContinue => 'ధృవీకరించి కొనసాగించు';
+
+  @override
+  String get changePhone => 'ఫోన్ మార్చు';
+
+  @override
+  String get pleaseCompleteFields => 'అన్ని అవసరమైన ఫీల్డ్‌లు పూరించండి.';
+
+  @override
+  String get marketEmptyTitle => 'మీ ప్రాంతంలో ఇంకా అవసరాలు లేవు';
+
+  @override
+  String get marketEmptySubtitle =>
+      'మీ మండలానికి సరిపోయే అవసరాలు వచ్చినప్పుడు ఇక్కడ కనిపిస్తాయి.';
+
+  @override
+  String get marketLoadError => 'మార్కెట్ అవసరాలు లోడ్ కాలేదు.';
+
+  @override
+  String get interested => 'ఆసక్తి ఉంది';
+
+  @override
+  String get traderContact => 'వ్యాపారి సంప్రదింపు';
+
+  @override
+  String get phoneCopied => 'ఫోన్ నంబర్ కాపీ అయింది';
+
+  @override
+  String get copyPhone => 'ఫోన్ కాపీ చేయి';
+
+  @override
+  String get priceOnRequest => 'ధర అడగండి';
+
+  @override
+  String get region => 'ప్రాంతం';
+
+  @override
+  String get postRequirement => 'అవసరం పోస్ట్ చేయి';
+
+  @override
+  String get quantityNeeded => 'అవసరమైన పరిమాణం';
+
+  @override
+  String get countMin => 'కౌంట్ కనిష్టం';
+
+  @override
+  String get countMax => 'కౌంట్ గరిష్టం';
+
+  @override
+  String get unit => 'యూనిట్';
+
+  @override
+  String get pricePerKgOptional => 'కిలో ధర (ఐచ్ఛికం)';
+
+  @override
+  String get selectRegion => 'ప్రాంతం ఎంచుకోండి';
+
+  @override
+  String get invalidValue => 'సరైన విలువ నమోదు చేయండి';
+
+  @override
+  String get requirementPosted => 'అవసరం పోస్ట్ అయింది';
+
+  @override
+  String get traderPhoneRequired => 'పోస్ట్ చేయడానికి ముందు ఫోన్ ధృవీకరించండి.';
+
+  @override
+  String get markFulfilled => 'పూర్తయింది గా గుర్తించు';
+
+  @override
+  String get requirementExpired => 'గడువు ముగిసింది';
+
+  @override
+  String get requirementExpiresToday => 'ఈ రోజు గడువు ముగుస్తుంది';
+
+  @override
+  String get requirementExpiresInOneDay => '1 రోజులో గడువు ముగుస్తుంది';
+
+  @override
+  String requirementExpiresInDays(int days) {
+    return '$days రోజులలో గడువు ముగుస్తుంది';
+  }
+
+  @override
+  String farmersInterested(int count) {
+    return '$count రైతు(లు) ఆసక్తి చూపారు';
+  }
+
+  @override
+  String get interestRecordError =>
+      'మీ ఆసక్తిని నమోదు చేయలేకపోయాం. మళ్లీ ప్రయత్నించండి.';
+
+  @override
+  String get countMinLessThanMax =>
+      'కనిష్ట కౌంట్ గరిష్ట కౌంట్ కంటే తక్కువగా ఉండాలి';
+
+  @override
+  String get expiryDateLabel => 'గడువు తేదీ';
+
+  @override
+  String get expiryMustBeFuture => 'గడువు భవిష్యత్తులో ఉండాలి';
+
+  @override
+  String get selectExpiryDate => 'గడువు తేదీ ఎంచుకోండి';
+
+  @override
+  String get setUpYourFarm => 'మీ ఫారం సెటప్ చేయండి';
+
+  @override
+  String get setUpYourFarmDesc =>
+      'నీరు, ఆహారం, పెరుగుదల ట్రాక్ చేయడానికి మొదటి చెరువు జోడించండి.';
+
+  @override
+  String get marketDay7Nudge =>
+      'మీరు చెరువులను కూడా నిర్వహించవచ్చు — ఎప్పుడైనా చెరువు జోడించండి.';
+
+  @override
+  String get dismiss => 'తీసివేయి';
 }

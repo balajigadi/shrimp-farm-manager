@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:prawn_farm_app/l10n/app_localizations.dart';
+import 'package:prawn_farm_app/utils/calendar_ranges.dart';
 import '../pond/pond_model.dart';
 import '../../services/firestore_service.dart';
 
@@ -14,11 +15,19 @@ class _WaterLogScreenState extends State<WaterLogScreen> {
   final _formKey = GlobalKey<FormState>();
 
   String? _selectedPondId;
-  DateTime _selectedDate = DateTime.now();
+  late DateTime _selectedDate;
+
+  @override
+  void initState() {
+    super.initState();
+    final n = DateTime.now();
+    _selectedDate = DateTime(n.year, n.month, n.day);
+  }
 
   final _phController = TextEditingController();
   final _salinityController = TextEditingController();
   final _ammoniaController = TextEditingController();
+  final _hardnessController = TextEditingController();
   final _doController = TextEditingController();
   final _tempController = TextEditingController();
 
@@ -27,6 +36,7 @@ class _WaterLogScreenState extends State<WaterLogScreen> {
     _phController.dispose();
     _salinityController.dispose();
     _ammoniaController.dispose();
+    _hardnessController.dispose();
     _doController.dispose();
     _tempController.dispose();
     super.dispose();
@@ -58,6 +68,22 @@ class _WaterLogScreenState extends State<WaterLogScreen> {
         return StreamBuilder<List<PondLog>>(
           stream: FirestoreService.instance.watchWaterLogs(selectedPond.id),
           builder: (context, snapshot) {
+            if (snapshot.hasError) {
+              return Scaffold(
+                body: Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Text(
+                      'Could not load water logs.\n'
+                      '${snapshot.error}\n\n'
+                      'If this mentions a missing index, open the Firebase '
+                      'link from the console log and deploy indexes.',
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                ),
+              );
+            }
             final pondLogs = snapshot.data ?? [];
             return DefaultTabController(
               length: 2,
@@ -66,10 +92,10 @@ class _WaterLogScreenState extends State<WaterLogScreen> {
                 appBar: AppBar(
                   title: Text(AppLocalizations.of(context)!.titleWaterQuality),
                   centerTitle: true,
-                  bottom: const TabBar(
+                  bottom: TabBar(
                     tabs: [
-                      Tab(text: 'Daily Entry'),
-                      Tab(text: 'Historical Trends'),
+                      Tab(text: AppLocalizations.of(context)!.dailyEntry),
+                      Tab(text: AppLocalizations.of(context)!.historicalTrends),
                     ],
                   ),
                 ),
@@ -111,8 +137,8 @@ class _WaterLogScreenState extends State<WaterLogScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'Daily Water Quality Log',
+                    Text(
+                      AppLocalizations.of(context)!.waterQualityLog,
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
@@ -120,27 +146,32 @@ class _WaterLogScreenState extends State<WaterLogScreen> {
                     ),
                     const SizedBox(height: 16),
                     _buildNumberField(
-                      label: 'pH',
+                      label: AppLocalizations.of(context)!.ph,
                       controller: _phController,
                       hint: 'e.g., 7.8',
                     ),
                     _buildNumberField(
-                      label: 'Salinity (ppt)',
+                      label: AppLocalizations.of(context)!.salinityPpt,
                       controller: _salinityController,
                       hint: 'e.g., 16.5',
                     ),
                     _buildNumberField(
-                      label: 'Ammonia (ppm)',
+                      label: AppLocalizations.of(context)!.ammoniaPpm,
                       controller: _ammoniaController,
                       hint: 'e.g., 0.4',
                     ),
                     _buildNumberField(
-                      label: 'Dissolved Oxygen (mg/L)',
+                      label: AppLocalizations.of(context)!.hardnessMgL,
+                      controller: _hardnessController,
+                      hint: 'e.g., 180',
+                    ),
+                    _buildNumberField(
+                      label: AppLocalizations.of(context)!.dissolvedOxygenMgL,
                       controller: _doController,
                       hint: 'e.g., 6.5',
                     ),
                     _buildNumberField(
-                      label: 'Temperature (°C)',
+                      label: AppLocalizations.of(context)!.temperatureC,
                       controller: _tempController,
                       hint: 'e.g., 29',
                     ),
@@ -156,8 +187,8 @@ class _WaterLogScreenState extends State<WaterLogScreen> {
                           ),
                         ),
                         onPressed: _saveLog,
-                        child: const Text(
-                          'Save Log',
+                        child: Text(
+                          AppLocalizations.of(context)!.saveLog,
                           style: TextStyle(
                             color: Colors.white,
                             fontWeight: FontWeight.w600,
@@ -172,7 +203,7 @@ class _WaterLogScreenState extends State<WaterLogScreen> {
           ),
           const SizedBox(height: 24),
           Text(
-            'Recent Logs',
+            AppLocalizations.of(context)!.recentLogs,
             style: Theme.of(context).textTheme.titleMedium,
           ),
           const SizedBox(height: 8),
@@ -184,8 +215,8 @@ class _WaterLogScreenState extends State<WaterLogScreen> {
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(color: const Color(0xFFE0E0E0)),
               ),
-              child: const Text(
-                'No water quality data for this pond yet.',
+              child: Text(
+                AppLocalizations.of(context)!.waterNoDataForPondYet,
                 style: TextStyle(color: Colors.grey),
               ),
             )
@@ -209,6 +240,7 @@ class _WaterLogScreenState extends State<WaterLogScreen> {
                     subtitle: Text(
                       'pH ${log.ph.toStringAsFixed(1)}, '
                       'Sal ${log.salinityPpt.toStringAsFixed(1)} ppt, '
+                      'Hard ${log.hardnessMgL.toStringAsFixed(0)} mg/L, '
                       'DO ${log.dissolvedOxygen.toStringAsFixed(1)} mg/L, '
                       'Temp ${log.waterTempC.toStringAsFixed(1)} °C',
                     ),
@@ -226,10 +258,20 @@ class _WaterLogScreenState extends State<WaterLogScreen> {
     Pond selectedPond,
     List<PondLog> pondLogs,
   ) {
-    final now = DateTime.now();
-    final sevenDaysAgo = now.subtract(const Duration(days: 7));
+    // Inclusive last 7 *calendar* days ending on the selected date, but never
+    // after "today" (picking a future date would show an empty window).
+    final endDay =
+        CalendarRanges.clampEndOfRangeToToday(_selectedDate);
+    final startDay =
+        CalendarRanges.windowStartInclusive(end: endDay, dayCount: 7);
     final recent = pondLogs
-        .where((log) => log.date.isAfter(sevenDaysAgo))
+        .where(
+          (log) => CalendarRanges.isDateInInclusiveRange(
+            log.date,
+            startDay,
+            endDay,
+          ),
+        )
         .toList()
       ..sort((a, b) => b.date.compareTo(a.date));
 
@@ -244,6 +286,12 @@ class _WaterLogScreenState extends State<WaterLogScreen> {
     String _statusForAmmonia(double amm) {
       if (amm < 0.1) return 'Good';
       if (amm < 0.5) return 'Warning';
+      return 'Danger';
+    }
+
+    String _statusForHardness(double hardness) {
+      if (hardness >= 120 && hardness <= 220) return 'Good';
+      if (hardness >= 90 && hardness <= 300) return 'Warning';
       return 'Danger';
     }
 
@@ -274,7 +322,15 @@ class _WaterLogScreenState extends State<WaterLogScreen> {
                 border: Border.all(color: const Color(0xFFE0E0E0)),
               ),
               child: Text(
-                AppLocalizations.of(context)!.noDataLast7Days,
+                pondLogs.isEmpty
+                    ? '${AppLocalizations.of(context)!.noDataLast7Days}\n\n'
+                        'If you use demo seed data: sign in as demo1@ for '
+                        'Pond A1–A4, demo2@ for Pond B1–B4. '
+                        'Also ensure Firestore indexes are deployed.'
+                    : '${AppLocalizations.of(context)!.noDataLast7Days}\n\n'
+                        'Logs exist for this pond but none fall in this '
+                        '7‑day window—open the date picker and choose Today '
+                        'or an earlier end date.',
                 style: const TextStyle(color: Colors.grey),
               ),
             )
@@ -283,7 +339,7 @@ class _WaterLogScreenState extends State<WaterLogScreen> {
               children: [
                 Expanded(
                   child: _metricCard(
-                    title: 'pH Level',
+                    title: AppLocalizations.of(context)!.ph,
                     value: latest.ph.toStringAsFixed(1),
                     status: _statusForPh(latest.ph),
                     unit: '',
@@ -293,7 +349,7 @@ class _WaterLogScreenState extends State<WaterLogScreen> {
                 const SizedBox(width: 12),
                 Expanded(
                   child: _metricCard(
-                    title: 'Ammonia',
+                    title: AppLocalizations.of(context)!.ammonia,
                     value: latest.ammoniaPpm.toStringAsFixed(2),
                     status: _statusForAmmonia(latest.ammoniaPpm),
                     unit: 'ppm',
@@ -302,12 +358,20 @@ class _WaterLogScreenState extends State<WaterLogScreen> {
                 ),
               ],
             ),
+            const SizedBox(height: 12),
+            _metricCard(
+              title: AppLocalizations.of(context)!.hardness,
+              value: latest.hardnessMgL.toStringAsFixed(0),
+              status: _statusForHardness(latest.hardnessMgL),
+              unit: 'mg/L',
+              color: _statusColor(_statusForHardness(latest.hardnessMgL)),
+            ),
             const SizedBox(height: 16),
             _chartPlaceholder(),
           ],
           const SizedBox(height: 24),
           Text(
-            'Historical Data (last 7 days)',
+            AppLocalizations.of(context)!.historicalDataLast7,
             style: Theme.of(context).textTheme.titleMedium,
           ),
           const SizedBox(height: 8),
@@ -319,8 +383,8 @@ class _WaterLogScreenState extends State<WaterLogScreen> {
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(color: const Color(0xFFE0E0E0)),
               ),
-              child: const Text(
-                'There is no water quality data for the selected pond and date range.',
+              child: Text(
+                AppLocalizations.of(context)!.waterNoDataForPondAndRange,
                 style: TextStyle(color: Colors.grey),
               ),
             )
@@ -346,6 +410,7 @@ class _WaterLogScreenState extends State<WaterLogScreen> {
                       'pH ${log.ph.toStringAsFixed(1)}, '
                       'Sal ${log.salinityPpt.toStringAsFixed(1)} ppt, '
                       'NH₃ ${log.ammoniaPpm.toStringAsFixed(2)} ppm, '
+                      'Hard ${log.hardnessMgL.toStringAsFixed(0)} mg/L, '
                       'DO ${log.dissolvedOxygen.toStringAsFixed(1)} mg/L, '
                       'Temp ${log.waterTempC.toStringAsFixed(1)} °C',
                     ),
@@ -441,7 +506,7 @@ class _WaterLogScreenState extends State<WaterLogScreen> {
       children: [
         Expanded(
           child: _selectorCard(
-            label: 'Pond',
+            label: AppLocalizations.of(context)!.pond,
             value: selectedPond.name,
             onTap: () async {
               await showModalBottomSheet<void>(
@@ -474,15 +539,20 @@ class _WaterLogScreenState extends State<WaterLogScreen> {
         const SizedBox(width: 12),
         Expanded(
           child: _selectorCard(
-            label: 'Date',
+            label: AppLocalizations.of(context)!.date,
             value: dateText,
             onTap: () async {
               final now = DateTime.now();
+              final today = DateTime(now.year, now.month, now.day);
+              final initial = CalendarRanges.clampEndOfRangeToToday(_selectedDate);
               final picked = await showDatePicker(
                 context: context,
-                initialDate: _selectedDate,
+                initialDate: initial.isBefore(DateTime(now.year - 2))
+                    ? today
+                    : initial,
                 firstDate: DateTime(now.year - 2),
-                lastDate: DateTime(now.year + 2),
+                // Do not allow future dates — water logs only exist in the past.
+                lastDate: today,
               );
               if (picked != null) {
                 setState(() {
@@ -490,8 +560,6 @@ class _WaterLogScreenState extends State<WaterLogScreen> {
                     picked.year,
                     picked.month,
                     picked.day,
-                    _selectedDate.hour,
-                    _selectedDate.minute,
                   );
                 });
               }
@@ -596,12 +664,14 @@ class _WaterLogScreenState extends State<WaterLogScreen> {
     final ph = double.tryParse(_phController.text.trim());
     final salinity = double.tryParse(_salinityController.text.trim());
     final ammonia = double.tryParse(_ammoniaController.text.trim());
+    final hardness = double.tryParse(_hardnessController.text.trim());
     final doVal = double.tryParse(_doController.text.trim());
     final temp = double.tryParse(_tempController.text.trim());
 
     if (ph == null ||
         salinity == null ||
         ammonia == null ||
+        hardness == null ||
         doVal == null ||
         temp == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -628,7 +698,7 @@ class _WaterLogScreenState extends State<WaterLogScreen> {
 
     final log = PondLog(
       id: '',
-      farmId: FirestoreService.defaultFarmId,
+      farmId: FirestoreService.instance.currentFarmId,
       pondId: _selectedPondId!,
       date: logDate,
       waterTempC: temp,
@@ -636,6 +706,7 @@ class _WaterLogScreenState extends State<WaterLogScreen> {
       ph: ph,
       salinityPpt: salinity,
       ammoniaPpm: ammonia,
+      hardnessMgL: hardness,
       feedKg: 0,
       mortalityCount: 0,
     );
@@ -646,6 +717,7 @@ class _WaterLogScreenState extends State<WaterLogScreen> {
       _phController.clear();
       _salinityController.clear();
       _ammoniaController.clear();
+      _hardnessController.clear();
       _doController.clear();
       _tempController.clear();
     });

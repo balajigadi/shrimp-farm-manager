@@ -30,6 +30,18 @@ class Pond {
   /// Feed conversion ratio.
   final double fcr;
 
+  /// Expected ABW min (g) for current DOC.
+  final double expectedAbwMin;
+
+  /// Expected ABW max (g) for current DOC.
+  final double expectedAbwMax;
+
+  /// Growth status label (`GOOD` / `SLOW` / `EXCELLENT`).
+  final String growthStatus;
+
+  /// Difference between actual ABW and expected midpoint.
+  final double growthGap;
+
   final DateTime estimatedHarvestDate;
 
   /// Estimated harvest biomass in metric tons.
@@ -50,6 +62,10 @@ class Pond {
     required this.survivalPercent,
     required this.totalFeedTons,
     required this.fcr,
+    this.expectedAbwMin = 0,
+    this.expectedAbwMax = 0,
+    this.growthStatus = '',
+    this.growthGap = 0,
     required this.estimatedHarvestDate,
     required this.estimatedBiomassTons,
   });
@@ -78,6 +94,9 @@ class PondLog {
   /// Ammonia in ppm.
   final double ammoniaPpm;
 
+  /// Hardness in mg/L as CaCO3.
+  final double hardnessMgL;
+
   /// Feed used today in kg.
   final double feedKg;
 
@@ -94,6 +113,7 @@ class PondLog {
     required this.ph,
     required this.salinityPpt,
     required this.ammoniaPpm,
+    required this.hardnessMgL,
     required this.feedKg,
     required this.mortalityCount,
   });
@@ -165,6 +185,23 @@ final List<Pond> samplePonds = [
 /// by a database or cloud sync.
 final List<PondLog> waterLogs = [];
 
+/// Check-tray reading after feeding (stored as `trayStatus` in Firestore).
+enum FeedTrayStatus {
+  empty,
+  partial,
+  full;
+
+  String get storageValue => name;
+
+  static FeedTrayStatus? tryParse(String? raw) {
+    if (raw == null || raw.isEmpty) return null;
+    for (final v in FeedTrayStatus.values) {
+      if (v.name == raw) return v;
+    }
+    return null;
+  }
+}
+
 @immutable
 class FeedLog {
   final String id;
@@ -174,6 +211,9 @@ class FeedLog {
   final String feedType;
   final double quantityKg;
 
+  /// Optional; demo seed and new entries set this (`empty`/`partial`/`full`).
+  final FeedTrayStatus? trayStatus;
+
   const FeedLog({
     required this.id,
     required this.farmId,
@@ -181,6 +221,7 @@ class FeedLog {
     required this.dateTime,
     required this.feedType,
     required this.quantityKg,
+    this.trayStatus,
   });
 }
 
@@ -228,6 +269,7 @@ class Expense {
   final String description;
   final String category; // e.g. Feed, Labor, Electricity, Maintenance, Other
   final List<String> pondIds;
+  final String imageUrl;
 
   const Expense({
     required this.id,
@@ -238,6 +280,7 @@ class Expense {
     required this.description,
     required this.category,
     required this.pondIds,
+    this.imageUrl = '',
   });
 }
 

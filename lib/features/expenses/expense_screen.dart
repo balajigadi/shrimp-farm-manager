@@ -1,4 +1,8 @@
+import 'dart:io';
+
+import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:prawn_farm_app/l10n/app_localizations.dart';
 import '../pond/pond_model.dart';
 import '../../services/firestore_service.dart';
@@ -18,6 +22,10 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
   String _selectedCategory = 'Feed';
   final Set<String> _selectedPondIds = {};
   String? _reportPondId; // null = all ponds
+  File? _receiptImageFile;
+  bool _saving = false;
+  int _touchedExpenseSliceIndex = -1;
+  final ImagePicker _imagePicker = ImagePicker();
 
   @override
   void dispose() {
@@ -75,6 +83,8 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
                 _buildCategoryChips(),
                 const SizedBox(height: 16),
                 _buildPondAssignment(),
+                const SizedBox(height: 16),
+                _buildReceiptAttachmentBox(),
                 const SizedBox(height: 24),
                 SizedBox(
                   width: double.infinity,
@@ -86,9 +96,9 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
                         borderRadius: BorderRadius.circular(12),
                       ),
                     ),
-                    onPressed: _saveExpense,
+                    onPressed: _saving ? null : _saveExpense,
                     child: Text(
-                      AppLocalizations.of(context)!.save,
+                      _saving ? 'Saving...' : AppLocalizations.of(context)!.save,
                       style: const TextStyle(
                         color: Colors.white,
                         fontWeight: FontWeight.w600,
@@ -264,7 +274,7 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
                   _selectedCategory = cat;
                 });
               },
-              selectedColor: const Color(0xFF00C853).withOpacity(0.15),
+              selectedColor: const Color(0xFF00C853).withValues(alpha: 0.15),
               labelStyle: TextStyle(
                 color: selected ? const Color(0xFF00C853) : Colors.black87,
                 fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
@@ -311,7 +321,7 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
                     });
                   },
                   selectedColor:
-                      const Color(0xFF00C853).withOpacity(0.15),
+                      const Color(0xFF00C853).withValues(alpha: 0.15),
                   labelStyle: TextStyle(
                     color: selected
                         ? const Color(0xFF00C853)
@@ -326,6 +336,94 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
         );
       },
     );
+  }
+
+  Widget _buildReceiptAttachmentBox() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Receipt Attachment',
+          style: TextStyle(fontWeight: FontWeight.w500),
+        ),
+        const SizedBox(height: 8),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: const Color(0xFFE0E0E0)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  OutlinedButton.icon(
+                    onPressed: _pickFromCamera,
+                    icon: const Icon(Icons.camera_alt_outlined),
+                    label: Text(AppLocalizations.of(context)!.expenseTakePhoto),
+                  ),
+                  OutlinedButton.icon(
+                    onPressed: _pickFromGallery,
+                    icon: const Icon(Icons.photo_library_outlined),
+                    label: Text(AppLocalizations.of(context)!.expenseUploadFromGallery),
+                  ),
+                  if (_receiptImageFile != null)
+                    TextButton.icon(
+                      onPressed: () => setState(() => _receiptImageFile = null),
+                      icon: const Icon(Icons.delete_outline, color: Colors.red),
+                      label: Text(
+                        AppLocalizations.of(context)!.expenseRemoveReceipt,
+                        style: TextStyle(color: Colors.red),
+                      ),
+                    ),
+                ],
+              ),
+              if (_receiptImageFile != null) ...[
+                const SizedBox(height: 10),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(10),
+                  child: Image.file(
+                    _receiptImageFile!,
+                    height: 150,
+                    width: double.infinity,
+                    fit: BoxFit.cover,
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _pickFromCamera() async {
+    final picked = await _imagePicker.pickImage(
+      source: ImageSource.camera,
+      imageQuality: 85,
+      maxWidth: 1600,
+    );
+    if (picked == null) return;
+    setState(() {
+      _receiptImageFile = File(picked.path);
+    });
+  }
+
+  Future<void> _pickFromGallery() async {
+    final picked = await _imagePicker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 85,
+      maxWidth: 1600,
+    );
+    if (picked == null) return;
+    setState(() {
+      _receiptImageFile = File(picked.path);
+    });
   }
 
   Widget _buildReportTab() {
@@ -365,7 +463,7 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
                 (p) => p.id == _reportPondId,
                 orElse: () => Pond(
                   id: '',
-                  farmId: FirestoreService.defaultFarmId,
+                  farmId: FirestoreService.instance.currentFarmId,
                   name: 'Unknown pond',
                   location: '',
                   areaAcres: 0,
@@ -477,6 +575,13 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
                     ],
                   ),
                   const SizedBox(height: 16),
+                  if (expenses.isNotEmpty) ...[
+                    _buildExpenseDistributionCard(
+                      byCategory: byCategory,
+                      total: total,
+                    ),
+                    const SizedBox(height: 16),
+                  ],
                   Text(
                     'Expense Breakdown',
                     style: Theme.of(context).textTheme.titleMedium,
@@ -559,19 +664,39 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: ListTile(
-                            leading: const Icon(Icons.receipt_long),
+                            leading: e.imageUrl.isEmpty
+                                ? const Icon(Icons.receipt_long)
+                                : const Icon(Icons.image_outlined),
                             title: Text(e.description.isEmpty
                                 ? e.category
                                 : e.description),
                             subtitle: Text(
                               '$dateText • ${e.category}',
                             ),
-                            trailing: Text(
-                              '₹${e.amount.toStringAsFixed(0)}',
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w600,
-                              ),
+                            trailing: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                Text(
+                                  '₹${e.amount.toStringAsFixed(0)}',
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                if (e.imageUrl.isNotEmpty)
+                                  const Text(
+                                    'Receipt',
+                                    style: TextStyle(
+                                      color: Colors.green,
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                              ],
                             ),
+                            onTap: e.imageUrl.isEmpty
+                                ? null
+                                : () => _openReceiptPreview(e.imageUrl),
                           ),
                         );
                       },
@@ -582,6 +707,49 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
           },
         );
       },
+    );
+  }
+
+  void _openReceiptPreview(String imageUrl) {
+    showDialog<void>(
+      context: context,
+      builder: (_) => Dialog(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 12),
+            Text(
+              AppLocalizations.of(context)!.expenseReceiptPreviewTitle,
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(height: 8),
+            InteractiveViewer(
+              maxScale: 4,
+              child: Image.network(
+                imageUrl,
+                fit: BoxFit.contain,
+                loadingBuilder: (context, child, loadingProgress) {
+                  if (loadingProgress == null) return child;
+                  return const Padding(
+                    padding: EdgeInsets.all(24),
+                    child: CircularProgressIndicator(),
+                  );
+                },
+                errorBuilder: (_, __, ___) => Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Text(AppLocalizations.of(context)!.expenseReceiptLoadFailed),
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text(AppLocalizations.of(context)!.close),
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
     );
   }
 
@@ -612,35 +780,189 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
     );
   }
 
-  void _saveExpense() {
+  Widget _buildExpenseDistributionCard({
+    required Map<String, double> byCategory,
+    required double total,
+  }) {
+    final entries = byCategory.entries
+        .where((e) => e.value > 0)
+        .toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+
+    final hasTouched =
+        _touchedExpenseSliceIndex >= 0 &&
+        _touchedExpenseSliceIndex < entries.length;
+    final touchedEntry = hasTouched ? entries[_touchedExpenseSliceIndex] : null;
+
+    final sections = entries.asMap().entries.map((entryWithIndex) {
+      final i = entryWithIndex.key;
+      final entry = entryWithIndex.value;
+      final value = entry.value;
+      final isTouched = i == _touchedExpenseSliceIndex;
+      return PieChartSectionData(
+        value: value,
+        color: _categoryColor(entry.key),
+        radius: isTouched ? 26 : 20,
+        showTitle: false,
+      );
+    }).toList();
+
+    return Card(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      elevation: 3,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Expense Distribution',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              height: 220,
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  PieChart(
+                    PieChartData(
+                      sections: sections,
+                      centerSpaceRadius: 62,
+                      sectionsSpace: 0,
+                      startDegreeOffset: -90,
+                      pieTouchData: PieTouchData(
+                        enabled: true,
+                        touchCallback: (event, response) {
+                          if (!event.isInterestedForInteractions ||
+                              response == null ||
+                              response.touchedSection == null) {
+                            if (_touchedExpenseSliceIndex != -1) {
+                              setState(() => _touchedExpenseSliceIndex = -1);
+                            }
+                            return;
+                          }
+                          setState(() {
+                            _touchedExpenseSliceIndex =
+                                response.touchedSection!.touchedSectionIndex;
+                          });
+                        },
+                      ),
+                    ),
+                  ),
+                  Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        touchedEntry?.key ?? 'Total',
+                        style: const TextStyle(color: Colors.grey),
+                        textAlign: TextAlign.center,
+                      ),
+                      Text(
+                        touchedEntry == null
+                            ? '₹${(total / 100000).toStringAsFixed(1)}L'
+                            : '₹${touchedEntry.value.toStringAsFixed(0)}',
+                        style: const TextStyle(
+                          fontSize: 30,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      if (touchedEntry != null)
+                        Text(
+                          '${((touchedEntry.value / total) * 100).toStringAsFixed(0)}% of total',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey,
+                          ),
+                        ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Color _categoryColor(String category) {
+    final c = category.toLowerCase();
+    if (c.contains('feed') || c.contains('మేత')) return const Color(0xFF34A853);
+    if (c.contains('labor') || c.contains('కూలి')) return const Color(0xFF4285F4);
+    if (c.contains('electricity') || c.contains('విద్యుత్')) {
+      return const Color(0xFFFBBC05);
+    }
+    if (c.contains('maintenance') || c.contains('పరిరక్షణ')) {
+      return const Color(0xFFEA4335);
+    }
+    if (c.contains('seed') || c.contains('విత్తనం')) return const Color(0xFFAB47BC);
+    return const Color(0xFF9E9E9E);
+  }
+
+  Future<void> _saveExpense() async {
     if (!_formKey.currentState!.validate()) return;
 
     final amount = double.parse(_amountController.text.trim());
 
-    final expense = Expense(
-      id: '',
-      farmId: FirestoreService.defaultFarmId,
-      date: _selectedDate,
-      amount: amount,
-      currency: 'INR',
-      description: _descriptionController.text.trim(),
-      category: _selectedCategory,
-      pondIds: _selectedPondIds.toList(),
-    );
-
-    FirestoreService.instance.addExpense(expense);
-
     setState(() {
-      _amountController.clear();
-      _descriptionController.clear();
-      _selectedCategory = 'Feed';
-      _selectedPondIds.clear();
-      _selectedDate = DateTime.now();
+      _saving = true;
     });
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(AppLocalizations.of(context)!.expenseSaved)),
-    );
+    try {
+      var imageUrl = '';
+      if (_receiptImageFile != null) {
+        imageUrl = await FirestoreService.instance.uploadExpenseReceipt(
+          farmId: FirestoreService.instance.currentFarmId,
+          file: _receiptImageFile!,
+        );
+      }
+
+      final expense = Expense(
+        id: '',
+        farmId: FirestoreService.instance.currentFarmId,
+        date: _selectedDate,
+        amount: amount,
+        currency: 'INR',
+        description: _descriptionController.text.trim(),
+        category: _selectedCategory,
+        pondIds: _selectedPondIds.toList(),
+        imageUrl: imageUrl,
+      );
+
+      final expenseId = await FirestoreService.instance.addExpense(expense);
+
+      if (!mounted) return;
+      setState(() {
+        _amountController.clear();
+        _descriptionController.clear();
+        _selectedCategory = 'Feed';
+        _selectedPondIds.clear();
+        _selectedDate = DateTime.now();
+        _receiptImageFile = null;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            '${AppLocalizations.of(context)!.expenseSaved} (ID: $expenseId)',
+          ),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('${AppLocalizations.of(context)!.expenseSaveFailed}: $e'),
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _saving = false;
+        });
+      }
+    }
   }
 
   String _monthName(int month) {

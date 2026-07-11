@@ -489,8 +489,8 @@ class _PondFormScreenState extends State<PondFormScreen> {
     final stockingCount =
         int.tryParse(_stockingCountController.text.trim()) ?? existing?.stockingCount ?? 0;
     final pond = Pond(
-      id: existing?.id ?? DateTime.now().millisecondsSinceEpoch.toString(),
-      farmId: existing?.farmId ?? FirestoreService.defaultFarmId,
+      id: existing?.id ?? '',
+      farmId: existing?.farmId ?? FirestoreService.instance.currentFarmId,
       name: _nameController.text.trim(),
       location: _locationController.text.trim(),
       areaAcres: size,

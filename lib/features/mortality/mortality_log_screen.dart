@@ -87,7 +87,7 @@ class _MortalityLogScreenState extends State<MortalityLogScreen> {
                       children: [
                         Expanded(
                           child: _selectorCard(
-                            label: 'Pond',
+                            label: AppLocalizations.of(context)!.pond,
                             value: selectedPond.name,
                             onTap: () => _selectPond(ponds),
                           ),
@@ -95,7 +95,7 @@ class _MortalityLogScreenState extends State<MortalityLogScreen> {
                         const SizedBox(width: 12),
                         Expanded(
                           child: _selectorCard(
-                            label: 'Date',
+                            label: AppLocalizations.of(context)!.date,
                             value: _formatDate(_selectedDateTime),
                             onTap: _selectDate,
                           ),
@@ -106,7 +106,7 @@ class _MortalityLogScreenState extends State<MortalityLogScreen> {
                     _buildFormCard(),
                     const SizedBox(height: 24),
                     Text(
-                      'Recent mortality',
+                      AppLocalizations.of(context)!.recentMortality,
                       style: Theme.of(context).textTheme.titleMedium,
                     ),
                     const SizedBox(height: 8),
@@ -134,8 +134,8 @@ class _MortalityLogScreenState extends State<MortalityLogScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                'Record mortality',
+              Text(
+                AppLocalizations.of(context)!.recordMortality,
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
@@ -161,8 +161,8 @@ class _MortalityLogScreenState extends State<MortalityLogScreen> {
                     ),
                   ),
                   onPressed: _saveMortality,
-                  child: const Text(
-                    'Save mortality',
+                  child: Text(
+                    AppLocalizations.of(context)!.saveMortality,
                     style: TextStyle(
                       color: Colors.white,
                       fontWeight: FontWeight.w600,
@@ -173,7 +173,7 @@ class _MortalityLogScreenState extends State<MortalityLogScreen> {
               const SizedBox(height: 8),
               TextButton(
                 onPressed: _saveNoMortalityToday,
-                child: const Text('No mortality today'),
+                child: Text(AppLocalizations.of(context)!.noMortalityToday),
               ),
             ],
           ),
@@ -186,8 +186,8 @@ class _MortalityLogScreenState extends State<MortalityLogScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Dead count',
+        Text(
+          AppLocalizations.of(context)!.deadCount,
           style: TextStyle(fontWeight: FontWeight.w500),
         ),
         const SizedBox(height: 4),
@@ -216,11 +216,11 @@ class _MortalityLogScreenState extends State<MortalityLogScreen> {
           ),
           validator: (value) {
             if (value == null || value.trim().isEmpty) {
-              return 'Required';
+              return AppLocalizations.of(context)!.requiredField;
             }
             final parsed = int.tryParse(value.trim());
             if (parsed == null || parsed < 0) {
-              return 'Enter a non-negative number';
+              return AppLocalizations.of(context)!.enterNonNegativeNumber;
             }
             return null;
           },
@@ -492,7 +492,7 @@ class _MortalityLogScreenState extends State<MortalityLogScreen> {
     final count = int.parse(_countController.text.trim());
     final log = MortalityLog(
       id: '',
-      farmId: FirestoreService.defaultFarmId,
+      farmId: FirestoreService.instance.currentFarmId,
       pondId: _selectedPondId!,
       dateTime: _selectedDateTime,
       count: count,
