@@ -1,4 +1,6 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:prawn_farm_app/data/regions.dart';
 import 'package:prawn_farm_app/l10n/app_localizations.dart';
 import '../profile/user_profile.dart';
@@ -17,9 +19,20 @@ class FarmerIntentScreen extends StatefulWidget {
 }
 
 class _FarmerIntentScreenState extends State<FarmerIntentScreen> {
+  final _nameController = TextEditingController();
+  final _phoneController = TextEditingController();
   FarmerIntent? _intent;
   String? _region;
   bool _saving = false;
+  String? _nameError;
+  String? _phoneError;
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _phoneController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -39,6 +52,22 @@ class _FarmerIntentScreenState extends State<FarmerIntentScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            TextField(
+              controller: _nameController,
+              textInputAction: TextInputAction.next,
+              textCapitalization: TextCapitalization.words,
+              decoration: InputDecoration(
+                labelText: l10n.onboardingYourName,
+                border: const OutlineInputBorder(),
+                errorText: _nameError,
+              ),
+              onChanged: (_) {
+                if (_nameError != null) {
+                  setState(() => _nameError = _validateName());
+                }
+              },
+            ),
+            const SizedBox(height: 16),
             if (!widget.supervisorMode) ...[
               Text(
                 l10n.onboardingIntentTitle,
@@ -85,6 +114,30 @@ class _FarmerIntentScreenState extends State<FarmerIntentScreen> {
                   .toList(),
               onChanged: (v) => setState(() => _region = v),
             ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: _phoneController,
+              keyboardType: TextInputType.phone,
+              textInputAction: TextInputAction.done,
+              maxLength: 10,
+              inputFormatters: [
+                FilteringTextInputFormatter.digitsOnly,
+              ],
+              decoration: InputDecoration(
+                labelText: l10n.onboardingPhoneNumber,
+                border: const OutlineInputBorder(),
+                counterText: '',
+                errorText: _phoneError,
+                helperText: widget.supervisorMode
+                    ? l10n.onboardingPhoneOptionalHint
+                    : null,
+              ),
+              onChanged: (_) {
+                if (_phoneError != null) {
+                  setState(() => _phoneError = _validatePhone());
+                }
+              },
+            ),
             const SizedBox(height: 32),
             FilledButton(
               onPressed: _canSave ? _save : null,
@@ -106,6 +159,45 @@ class _FarmerIntentScreenState extends State<FarmerIntentScreen> {
     if (_region == null || _region!.isEmpty) return false;
     if (widget.supervisorMode) return true;
     return _intent != null;
+  }
+
+  String? _validateName() {
+    final name = _nameController.text.trim();
+    if (name.length < 2) {
+      return AppLocalizations.of(context)!.nameInvalid;
+    }
+    // Letters (any script), spaces, and common name punctuation — no digits.
+    if (RegExp(r'[0-9]').hasMatch(name) ||
+        !RegExp(r'^[\p{L}\s.\-]+$', unicode: true).hasMatch(name)) {
+      return AppLocalizations.of(context)!.nameInvalid;
+    }
+    return null;
+  }
+
+  String? _validatePhone() {
+    var digits = _phoneController.text.trim().replaceAll(RegExp(r'[^\d]'), '');
+    if (digits.startsWith('0')) {
+      digits = digits.substring(1);
+    }
+    if (widget.supervisorMode && digits.isEmpty) {
+      return null;
+    }
+    if (digits.isEmpty) {
+      return AppLocalizations.of(context)!.phoneRequired;
+    }
+    if (digits.length != 10 || !RegExp(r'^[6-9]\d{9}$').hasMatch(digits)) {
+      return AppLocalizations.of(context)!.phoneInvalid;
+    }
+    return null;
+  }
+
+  String? _normalizedPhoneOrNull() {
+    var digits = _phoneController.text.trim().replaceAll(RegExp(r'[^\d]'), '');
+    if (digits.startsWith('0')) {
+      digits = digits.substring(1);
+    }
+    if (digits.isEmpty) return null;
+    return digits;
   }
 
   Widget _intentTile({
@@ -150,13 +242,30 @@ class _FarmerIntentScreenState extends State<FarmerIntentScreen> {
     if (region == null || region.isEmpty) return;
     if (!widget.supervisorMode && intent == null) return;
 
+    final nameError = _validateName();
+    final phoneError = _validatePhone();
+    setState(() {
+      _nameError = nameError;
+      _phoneError = phoneError;
+    });
+    if (nameError != null || phoneError != null) return;
+
+    final displayName = _nameController.text.trim();
+    final phoneNumber = _normalizedPhoneOrNull();
+
     setState(() => _saving = true);
     try {
       await UserProfileService.instance.completeOnboarding(
         role: widget.supervisorMode ? UserRole.supervisor : UserRole.farmer,
         farmerIntent: widget.supervisorMode ? FarmerIntent.manageFarm : intent,
         region: region,
+        displayName: displayName,
+        phoneNumber: phoneNumber,
       );
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        await user.updateDisplayName(displayName);
+      }
       // AuthGate listens to watchProfile() and swaps OnboardingFlow → AppShell.
       // Do not Navigator.pop here — the widget tree is replaced and popping crashes.
     } catch (e) {

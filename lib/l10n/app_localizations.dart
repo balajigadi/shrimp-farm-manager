@@ -1790,6 +1790,54 @@ abstract class AppLocalizations {
   /// **'Market alerts plus full farm management'**
   String get intentBothDesc;
 
+  /// No description provided for @onboardingYourName.
+  ///
+  /// In en, this message translates to:
+  /// **'మీ పేరు / Your Name'**
+  String get onboardingYourName;
+
+  /// No description provided for @onboardingPhoneNumber.
+  ///
+  /// In en, this message translates to:
+  /// **'మొబైల్ నంబర్ / Phone Number'**
+  String get onboardingPhoneNumber;
+
+  /// No description provided for @onboardingPhoneOptionalHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Optional for supervisors'**
+  String get onboardingPhoneOptionalHint;
+
+  /// No description provided for @nameInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a valid name (letters only, min 2 characters)'**
+  String get nameInvalid;
+
+  /// No description provided for @phoneRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Phone number is required'**
+  String get phoneRequired;
+
+  /// No description provided for @phoneInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a valid 10-digit Indian mobile number'**
+  String get phoneInvalid;
+
+  /// No description provided for @contactUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Contact unavailable'**
+  String get contactUnavailable;
+
+  /// No description provided for @noContact.
+  ///
+  /// In en, this message translates to:
+  /// **'No contact'**
+  String get noContact;
+
   /// No description provided for @onboardingRegionTitle.
   ///
   /// In en, this message translates to:

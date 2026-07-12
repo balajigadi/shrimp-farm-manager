@@ -884,6 +884,31 @@ class AppLocalizationsEn extends AppLocalizations {
   String get intentBothDesc => 'Market alerts plus full farm management';
 
   @override
+  String get onboardingYourName => 'మీ పేరు / Your Name';
+
+  @override
+  String get onboardingPhoneNumber => 'మొబైల్ నంబర్ / Phone Number';
+
+  @override
+  String get onboardingPhoneOptionalHint => 'Optional for supervisors';
+
+  @override
+  String get nameInvalid =>
+      'Enter a valid name (letters only, min 2 characters)';
+
+  @override
+  String get phoneRequired => 'Phone number is required';
+
+  @override
+  String get phoneInvalid => 'Enter a valid 10-digit Indian mobile number';
+
+  @override
+  String get contactUnavailable => 'Contact unavailable';
+
+  @override
+  String get noContact => 'No contact';
+
+  @override
   String get onboardingRegionTitle => 'Your region (mandal)';
 
   @override

@@ -37,6 +37,8 @@ const DEMO_USERS = [
       region: DEMO_REGION,
       onboardingComplete: true,
       phoneVerified: false,
+      displayName: 'Ravi Kumar',
+      phoneNumber: '9849012345',
     },
     ponds: ['Pond A1', 'Pond A2', 'Pond A3', 'Pond A4'],
   },
@@ -108,6 +110,8 @@ const DEMO_USERS = [
       region: DEMO_REGION,
       onboardingComplete: true,
       phoneVerified: false,
+      displayName: 'Suresh Reddy',
+      phoneNumber: '9876543210',
     },
     ponds: [],
   },
@@ -344,11 +348,48 @@ async function wipeTraderRequirements(traderId) {
     .collection('requirements')
     .where('traderId', '==', traderId)
     .get();
-  await Promise.all(snap.docs.map((d) => d.ref.delete()));
+  for (const doc of snap.docs) {
+    const interested = await doc.ref.collection('interested').get();
+    await Promise.all(interested.docs.map((d) => d.ref.delete()));
+    await doc.ref.delete();
+  }
 }
 
-async function seedRequirements({ traderId, items }) {
-  for (const item of items) {
+/**
+ * Seeds interested/{farmerUid} docs so trader "Interested farmers" sheet
+ * shows real displayName / region / phoneNumber in demos.
+ */
+async function seedInterestedOnRequirement(requirementRef, farmers) {
+  if (!farmers?.length) return;
+
+  for (const farmer of farmers) {
+    if (!farmer?.uid || String(farmer.uid).includes('PASTE_')) continue;
+    const displayName =
+      farmer.profile?.displayName?.trim() ||
+      (farmer.email ? farmer.email.split('@')[0] : 'Farmer');
+    const region = farmer.profile?.region?.trim() || DEMO_REGION;
+    const phoneNumber = farmer.profile?.phoneNumber?.trim() || '';
+
+    await requirementRef.collection('interested').doc(farmer.uid).set({
+      farmerUid: farmer.uid,
+      displayName,
+      email: farmer.email || '',
+      region,
+      phoneNumber,
+      timestamp: admin.firestore.FieldValue.serverTimestamp(),
+    });
+    console.log(
+      `    interested: ${displayName} (${farmer.email}) region=${region}`,
+    );
+  }
+
+  await requirementRef.update({ interestedCount: farmers.length });
+}
+
+async function seedRequirements({ traderId, items, interestedFarmers = [] }) {
+  const requirementIds = [];
+  for (let i = 0; i < items.length; i++) {
+    const item = items[i];
     const data = {
       traderId,
       traderName: item.traderName,
@@ -366,10 +407,19 @@ async function seedRequirements({ traderId, items }) {
       data.pricePerKg = item.pricePerKg;
     }
     const ref = await db.collection('requirements').add(data);
+    requirementIds.push(ref.id);
     console.log(
       `  requirement id=${ref.id} regions=${item.regions.join(',')} qty=${item.quantityNeeded}${item.unit}`,
     );
+
+    // First Bhimavaram requirement gets demo farmers interested (trader sheet demo).
+    const isPrimaryDemoReq =
+      i === 0 && item.regions.includes(DEMO_REGION) && interestedFarmers.length;
+    if (isPrimaryDemoReq) {
+      await seedInterestedOnRequirement(ref, interestedFarmers);
+    }
   }
+  return requirementIds;
 }
 
 async function seedFarmUser(user) {
@@ -414,7 +464,7 @@ async function seedProfileOnlyUser(user) {
   await upsertUserSettings(user.uid, user.email, user.profile);
 }
 
-async function seedTraderUser(user) {
+async function seedTraderUser(user, { interestedFarmers = [] } = {}) {
   if (!user.uid || user.uid.includes('PASTE_')) {
     console.warn(
       `\nSkipping trader seed: set USER_TRADER_UID after creating demo3@prawnfarm.com in Auth.`,
@@ -431,6 +481,7 @@ async function seedTraderUser(user) {
     await seedRequirements({
       traderId: user.uid,
       items: user.requirements,
+      interestedFarmers,
     });
   }
 }
@@ -492,11 +543,18 @@ async function run() {
     }
   }
 
+  // Resolve farmer profiles first so trader requirements can attach interest.
+  const farmerBoth = usersToSeed.find((u) => u.key === 'farmerBoth');
+  const buyerFarmer = usersToSeed.find((u) => u.key === 'buyerFarmer');
+  const interestedFarmers = [farmerBoth, buyerFarmer].filter(
+    (u) => u && u.uid && !String(u.uid).includes('PASTE_'),
+  );
+
   for (const user of usersToSeed) {
     if (user.ponds?.length) {
       await seedFarmUser(user);
     } else if (user.key === 'trader') {
-      await seedTraderUser(user);
+      await seedTraderUser(user, { interestedFarmers });
     } else {
       await seedProfileOnlyUser(user);
     }
@@ -508,6 +566,14 @@ async function run() {
   console.log('  demo2@prawnfarm.com  — Supervisor: Pond B1–B4');
   console.log('  demo3@prawnfarm.com  — Trader: post/view requirements');
   console.log('  demo4@prawnfarm.com  — Farmer (notifications only): Market only');
+  console.log(
+    '\nTrader interested sheet: first Bhimavaram requirement includes',
+  );
+  for (const f of interestedFarmers) {
+    console.log(
+      `  - ${f.profile.displayName} / ${f.profile.region} (${f.email})`,
+    );
+  }
   process.exit(0);
 }
 
