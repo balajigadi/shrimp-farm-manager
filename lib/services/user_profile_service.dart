@@ -34,6 +34,8 @@ class UserProfileService {
           role: UserRole.farmer,
           farmerIntent: FarmerIntent.both,
           region: 'Bhimavaram',
+          displayName: 'Ravi Kumar',
+          phoneNumber: '9849012345',
           onboardingComplete: true,
           createdAt: DateTime.now(),
         );
@@ -65,6 +67,8 @@ class UserProfileService {
           role: UserRole.farmer,
           farmerIntent: FarmerIntent.buyerNotifications,
           region: 'Bhimavaram',
+          displayName: 'Suresh Reddy',
+          phoneNumber: '9876543210',
           onboardingComplete: true,
           createdAt: DateTime.now(),
         );
@@ -107,6 +111,14 @@ class UserProfileService {
     final email = FirebaseAuth.instance.currentUser?.email;
     final snap = await _col.doc(uid).get();
     return _profileFromSnapshot(uid, email, snap);
+  }
+
+  /// Loads any user's [userSettings/{uid}] (e.g. interested farmers list).
+  Future<UserProfile?> getProfileByUid(String uid) async {
+    if (uid.isEmpty) return null;
+    final snap = await _col.doc(uid).get();
+    if (!snap.exists) return null;
+    return UserProfile.fromDoc(uid, snap.data());
   }
 
   Future<void> saveProfile(UserProfile profile) async {

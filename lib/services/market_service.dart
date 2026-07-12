@@ -247,6 +247,7 @@ class MarketService {
   }
 
   /// Lazy-load farmers who marked interest (trader view). Call only on tap.
+  /// Enriches each row from [userSettings/{farmerUid}] in parallel.
   Future<List<InterestedFarmer>> fetchInterestedFarmers(
     String requirementId,
   ) async {
@@ -264,7 +265,38 @@ class MarketService {
       if (bt == null) return -1;
       return bt.compareTo(at);
     });
-    return farmers;
+
+    if (farmers.isEmpty) return farmers;
+
+    final profiles = await Future.wait(
+      farmers.map(
+        (f) => UserProfileService.instance.getProfileByUid(f.farmerUid),
+      ),
+    );
+
+    return List<InterestedFarmer>.generate(farmers.length, (i) {
+      final farmer = farmers[i];
+      final profile = profiles[i];
+      final profileName = profile?.displayName?.trim();
+      final profileEmail = profile?.email?.trim() ?? '';
+      final emailLocal = profileEmail.contains('@')
+          ? profileEmail.split('@').first
+          : profileEmail;
+
+      final displayName = (profileName != null && profileName.isNotEmpty)
+          ? profileName
+          : (emailLocal.isNotEmpty ? emailLocal : farmer.displayName);
+
+      final region = profile?.region?.trim();
+      final phone = profile?.phoneNumber?.trim();
+
+      return farmer.copyWith(
+        displayName: displayName,
+        region: (region != null && region.isNotEmpty) ? region : farmer.region,
+        phoneNumber:
+            (phone != null && phone.isNotEmpty) ? phone : farmer.phoneNumber,
+      );
+    });
   }
 
   Future<void> updateRequirementStatus(

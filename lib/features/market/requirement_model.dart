@@ -149,14 +149,29 @@ class InterestedFarmer {
     final data = doc.data() ?? {};
     final name = (data['displayName'] as String?)?.trim() ?? '';
     final email = (data['email'] as String?)?.trim() ?? '';
+    final emailLocal = email.contains('@') ? email.split('@').first : email;
     return InterestedFarmer(
       farmerUid: data['farmerUid'] as String? ?? doc.id,
       displayName: name.isNotEmpty
           ? name
-          : (email.isNotEmpty ? email : 'Farmer'),
+          : (emailLocal.isNotEmpty ? emailLocal : 'Farmer'),
       region: (data['region'] as String?)?.trim() ?? '',
       phoneNumber: (data['phoneNumber'] as String?)?.trim() ?? '',
       timestamp: (data['timestamp'] as Timestamp?)?.toDate(),
+    );
+  }
+
+  InterestedFarmer copyWith({
+    String? displayName,
+    String? region,
+    String? phoneNumber,
+  }) {
+    return InterestedFarmer(
+      farmerUid: farmerUid,
+      displayName: displayName ?? this.displayName,
+      region: region ?? this.region,
+      phoneNumber: phoneNumber ?? this.phoneNumber,
+      timestamp: timestamp,
     );
   }
 }

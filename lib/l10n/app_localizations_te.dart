@@ -894,6 +894,30 @@ class AppLocalizationsTe extends AppLocalizations {
   String get intentBothDesc => 'మార్కెట్ + పూర్తి ఫారం నిర్వహణ';
 
   @override
+  String get onboardingYourName => 'మీ పేరు / Your Name';
+
+  @override
+  String get onboardingPhoneNumber => 'మొబైల్ నంబర్ / Phone Number';
+
+  @override
+  String get onboardingPhoneOptionalHint => 'సూపర్‌వైజర్‌లకు ఐచ్ఛికం';
+
+  @override
+  String get nameInvalid => 'సరైన పేరు ఇవ్వండి (అక్షరాలు మాత్రమే, కనీసం 2)';
+
+  @override
+  String get phoneRequired => 'ఫోన్ నంబర్ అవసరం';
+
+  @override
+  String get phoneInvalid => 'సరైన 10 అంకెల భారతీయ మొబైల్ నంబర్ ఇవ్వండి';
+
+  @override
+  String get contactUnavailable => 'సంప్రదింపు అందుబాటులో లేదు';
+
+  @override
+  String get noContact => 'సంప్రదింపు లేదు';
+
+  @override
   String get onboardingRegionTitle => 'మీ ప్రాంతం (మండలం)';
 
   @override

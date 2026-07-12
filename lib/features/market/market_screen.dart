@@ -393,13 +393,22 @@ class _MarketScreenState extends State<MarketScreen> {
                     child: Text(l10n.interested),
                   ),
                   const SizedBox(width: 8),
-                  OutlinedButton.icon(
-                    onPressed: showExpiredBadge
-                        ? null
-                        : () => _openWhatsApp(context, req.traderPhone),
-                    icon: const Icon(Icons.chat, size: 18),
-                    label: const Text('WhatsApp'),
-                  ),
+                  if (req.traderPhone.trim().isNotEmpty)
+                    OutlinedButton.icon(
+                      onPressed: showExpiredBadge
+                          ? null
+                          : () => _openWhatsApp(context, req.traderPhone),
+                      icon: const Icon(Icons.chat, size: 18),
+                      label: const Text('WhatsApp'),
+                    )
+                  else
+                    Text(
+                      l10n.contactUnavailable,
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: Colors.grey.shade600,
+                      ),
+                    ),
                 ],
               ),
             if (isTrader &&
@@ -514,6 +523,7 @@ class _MarketScreenState extends State<MarketScreen> {
                           final regionLabel = farmer.region.isEmpty
                               ? '—'
                               : farmer.region;
+                          final hasPhone = farmer.phoneNumber.trim().isNotEmpty;
                           return ListTile(
                             contentPadding: EdgeInsets.zero,
                             title: Text(
@@ -521,26 +531,25 @@ class _MarketScreenState extends State<MarketScreen> {
                               style: const TextStyle(fontWeight: FontWeight.w600),
                             ),
                             subtitle: Text('${l10n.region}: $regionLabel'),
-                            trailing: OutlinedButton.icon(
-                              onPressed: farmer.phoneNumber.isEmpty
-                                  ? () {
-                                      ScaffoldMessenger.of(parentContext)
-                                          .showSnackBar(
-                                        SnackBar(
-                                          content: Text(l10n.noPhoneAvailable),
-                                        ),
-                                      );
-                                    }
-                                  : () async {
+                            trailing: hasPhone
+                                ? OutlinedButton.icon(
+                                    onPressed: () async {
                                       Navigator.pop(sheetContext);
                                       await _openWhatsApp(
                                         parentContext,
                                         farmer.phoneNumber,
                                       );
                                     },
-                              icon: const Icon(Icons.chat, size: 18),
-                              label: const Text('WhatsApp'),
-                            ),
+                                    icon: const Icon(Icons.chat, size: 18),
+                                    label: const Text('WhatsApp'),
+                                  )
+                                : Text(
+                                    l10n.noContact,
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      color: Colors.grey.shade600,
+                                    ),
+                                  ),
                           );
                         },
                       ),
@@ -569,6 +578,7 @@ class _MarketScreenState extends State<MarketScreen> {
 
     if (!context.mounted) return;
     final parentContext = context;
+    final traderPhone = req.traderPhone.trim();
     showModalBottomSheet<void>(
       context: context,
       builder: (sheetContext) => Padding(
@@ -580,31 +590,40 @@ class _MarketScreenState extends State<MarketScreen> {
             Text(l10n.traderContact,
                 style: Theme.of(sheetContext).textTheme.titleMedium),
             const SizedBox(height: 12),
-            SelectableText(req.traderPhone,
-                style: const TextStyle(fontSize: 20)),
-            const SizedBox(height: 16),
-            FilledButton.icon(
-              onPressed: () async {
-                await Clipboard.setData(ClipboardData(text: req.traderPhone));
-                if (!sheetContext.mounted) return;
-                Navigator.pop(sheetContext);
-                if (!parentContext.mounted) return;
-                ScaffoldMessenger.of(parentContext).showSnackBar(
-                  SnackBar(content: Text(l10n.phoneCopied)),
-                );
-              },
-              icon: const Icon(Icons.copy),
-              label: Text(l10n.copyPhone),
-            ),
-            const SizedBox(height: 8),
-            OutlinedButton.icon(
-              onPressed: () async {
-                Navigator.pop(sheetContext);
-                await _openWhatsApp(parentContext, req.traderPhone);
-              },
-              icon: const Icon(Icons.chat),
-              label: const Text('WhatsApp'),
-            ),
+            if (traderPhone.isEmpty)
+              Text(
+                l10n.contactUnavailable,
+                style: TextStyle(
+                  fontSize: 16,
+                  color: Colors.grey.shade600,
+                ),
+              )
+            else ...[
+              SelectableText(traderPhone, style: const TextStyle(fontSize: 20)),
+              const SizedBox(height: 16),
+              FilledButton.icon(
+                onPressed: () async {
+                  await Clipboard.setData(ClipboardData(text: traderPhone));
+                  if (!sheetContext.mounted) return;
+                  Navigator.pop(sheetContext);
+                  if (!parentContext.mounted) return;
+                  ScaffoldMessenger.of(parentContext).showSnackBar(
+                    SnackBar(content: Text(l10n.phoneCopied)),
+                  );
+                },
+                icon: const Icon(Icons.copy),
+                label: Text(l10n.copyPhone),
+              ),
+              const SizedBox(height: 8),
+              OutlinedButton.icon(
+                onPressed: () async {
+                  Navigator.pop(sheetContext);
+                  await _openWhatsApp(parentContext, traderPhone);
+                },
+                icon: const Icon(Icons.chat),
+                label: const Text('WhatsApp'),
+              ),
+            ],
           ],
         ),
       ),
@@ -613,7 +632,12 @@ class _MarketScreenState extends State<MarketScreen> {
 
   String _whatsappDigits(String phone) {
     var digits = phone.replaceAll(RegExp(r'[^\d]'), '');
-    if (digits.length == 10) {
+    if (digits.startsWith('0')) {
+      digits = digits.substring(1);
+    }
+    if (digits.startsWith('91') && digits.length == 12) {
+      // already country-coded
+    } else if (digits.length == 10) {
       digits = '91$digits';
     }
     return digits;
