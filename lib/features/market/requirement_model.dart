@@ -70,10 +70,9 @@ class BuyerRequirement {
   bool get isActive =>
       status == RequirementStatus.open && expiresAt.isAfter(DateTime.now());
 
-  factory BuyerRequirement.fromDoc(DocumentSnapshot<Map<String, dynamic>> doc) {
-    final data = doc.data() ?? {};
+  factory BuyerRequirement.fromMap(String id, Map<String, dynamic> data) {
     return BuyerRequirement(
-      id: doc.id,
+      id: id,
       traderId: data['traderId'] as String? ?? '',
       traderName: data['traderName'] as String? ?? '',
       traderPhone: data['traderPhone'] as String? ?? '',
@@ -93,6 +92,10 @@ class BuyerRequirement {
           DateTime.fromMillisecondsSinceEpoch(0),
       interestedCount: (data['interestedCount'] as num?)?.toInt() ?? 0,
     );
+  }
+
+  factory BuyerRequirement.fromDoc(DocumentSnapshot<Map<String, dynamic>> doc) {
+    return BuyerRequirement.fromMap(doc.id, doc.data() ?? {});
   }
 
   Map<String, dynamic> toFirestore() {

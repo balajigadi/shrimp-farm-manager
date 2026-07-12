@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import '../features/pond/pond_model.dart';
+import '../utils/farm_metrics.dart';
 
 class FirestoreService {
   FirestoreService._();
@@ -252,14 +253,11 @@ class FirestoreService {
             .where('pondId', isEqualTo: pondId)
             .get();
 
-    double totalKg = 0;
-    for (final doc in snapshot.docs) {
+    final quantities = snapshot.docs.map((doc) {
       final data = doc.data();
-      final qty = (data['quantityKg'] as num?)?.toDouble() ?? 0;
-      totalKg += qty;
-    }
-
-    final totalTons = totalKg / 1000.0;
+      return (data['quantityKg'] as num?)?.toDouble() ?? 0;
+    });
+    final totalTons = FarmMetrics.totalFeedTonsFromKg(quantities);
 
     await _pondsCol.doc(pondId).set(
       {
@@ -403,16 +401,15 @@ class FirestoreService {
       totalDead += (data['count'] as num?)?.toInt() ?? 0;
     }
 
-    if (totalDead < 0) totalDead = 0;
-    if (totalDead > stockingCount) totalDead = stockingCount;
-
-    final survivors = stockingCount - totalDead;
-    final survivalPercent =
-        stockingCount == 0 ? 0.0 : (survivors / stockingCount) * 100.0;
-
-    // Biomass in tons, if average weight is available.
-    final biomassTons =
-        avgBodyWeightGrams <= 0 ? null : survivors * avgBodyWeightGrams / 1e6;
+    final survivalPercent = FarmMetrics.survivalPercent(
+      stockingCount: stockingCount,
+      totalMortality: totalDead,
+    );
+    final biomassTons = FarmMetrics.estimatedBiomassTons(
+      stockingCount: stockingCount,
+      totalMortality: totalDead,
+      avgBodyWeightGrams: avgBodyWeightGrams,
+    );
 
     final updateData = <String, dynamic>{
       'survivalPercent': survivalPercent,
@@ -437,16 +434,16 @@ class FirestoreService {
     final biomassTons =
         (data['estimatedBiomassTons'] as num?)?.toDouble() ?? 0.0;
 
-    if (totalFeedTons <= 0 || biomassTons <= 0) {
+    final fcr = FarmMetrics.fcr(
+      totalFeedTons: totalFeedTons,
+      biomassTons: biomassTons,
+    );
+    if (fcr == null) {
       // If we don't have both values yet, don't overwrite FCR.
       return;
     }
 
-    final fcr = totalFeedTons / biomassTons;
-
-    await _pondsCol
-        .doc(pondId)
-        .set({'fcr': fcr}, SetOptions(merge: true));
+    await _pondsCol.doc(pondId).set({'fcr': fcr}, SetOptions(merge: true));
   }
 
   // EXPENSES ------------------------------------------------------------------

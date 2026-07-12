@@ -1,7 +1,9 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:prawn_farm_app/features/auth/auth_routing.dart';
 import 'package:prawn_farm_app/features/auth/sign_in_screen.dart';
 import 'package:prawn_farm_app/features/onboarding/onboarding_flow.dart';
+import 'package:prawn_farm_app/features/pond/pond_model.dart';
 import 'package:prawn_farm_app/features/profile/user_profile.dart';
 import 'package:prawn_farm_app/features/shell/app_shell.dart';
 import 'package:prawn_farm_app/services/firestore_service.dart';
@@ -16,47 +18,42 @@ class AuthGate extends StatelessWidget {
       stream: FirebaseAuth.instance.authStateChanges(),
       builder: (context, authSnapshot) {
         final user = authSnapshot.data;
-        if (authSnapshot.connectionState == ConnectionState.waiting) {
-          return const Scaffold(
-            body: Center(child: CircularProgressIndicator()),
-          );
-        }
-        if (user == null) {
-          return const SignInScreen();
-        }
 
-        return StreamBuilder(
-          stream: FirestoreService.instance.watchPonds(),
+        return StreamBuilder<List<Pond>>(
+          stream: user == null
+              ? Stream<List<Pond>>.value(const [])
+              : FirestoreService.instance.watchPonds(),
           builder: (context, pondSnapshot) {
-            return StreamBuilder(
-              stream: UserProfileService.instance.watchProfile(),
+            return StreamBuilder<UserProfile?>(
+              stream: user == null
+                  ? Stream<UserProfile?>.value(null)
+                  : UserProfileService.instance.watchProfile(),
               builder: (context, profileSnapshot) {
-                if (profileSnapshot.connectionState ==
-                        ConnectionState.waiting &&
-                    !profileSnapshot.hasData) {
-                  return const Scaffold(
-                    body: Center(child: CircularProgressIndicator()),
-                  );
-                }
+                final view = resolveAuthGateView(
+                  authConnectionState: authSnapshot.connectionState,
+                  signedIn: user != null,
+                  profileConnectionState: profileSnapshot.connectionState,
+                  profileHasData: profileSnapshot.hasData,
+                  profile: profileSnapshot.data,
+                  hasPonds: (pondSnapshot.data ?? const []).isNotEmpty,
+                );
 
-                final profile = profileSnapshot.data;
-                if (profile == null) {
-                  return const Scaffold(
-                    body: Center(child: CircularProgressIndicator()),
-                  );
-                }
-
-                if (!profile.onboardingComplete) {
-                  final ponds = pondSnapshot.data ?? [];
-                  if (ponds.isNotEmpty) {
+                switch (view) {
+                  case AuthGateView.loading:
+                    return const Scaffold(
+                      body: Center(child: CircularProgressIndicator()),
+                    );
+                  case AuthGateView.signIn:
+                    return const SignInScreen();
+                  case AuthGateView.onboarding:
+                    return const OnboardingFlow();
+                  case AuthGateView.legacyBootstrap:
                     return _LegacyProfileLoader(
                       onReady: (resolved) => AppShell(profile: resolved),
                     );
-                  }
-                  return const OnboardingFlow();
+                  case AuthGateView.home:
+                    return AppShell(profile: profileSnapshot.data!);
                 }
-
-                return AppShell(profile: profile);
               },
             );
           },

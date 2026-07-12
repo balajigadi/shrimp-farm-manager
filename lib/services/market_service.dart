@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../features/market/requirement_model.dart';
 import 'market_feed_builder.dart';
+import 'market_rules.dart';
 /// Firestore-backed market feed; uses [MarketFeedBuilder] for filtering/sorting.
 class MarketService {
   MarketService._();
@@ -111,14 +112,8 @@ class MarketService {
     );
   }
 
-  bool _isMissingIndexError(Object error) {
-    if (error is FirebaseException) {
-      return error.code == 'failed-precondition';
-    }
-    final message = error.toString().toLowerCase();
-    return message.contains('requires an index') ||
-        message.contains('index is currently building');
-  }
+  bool _isMissingIndexError(Object error) =>
+      MarketRules.isMissingIndexError(error);
 
   /// Trader view: own requirements (all statuses).
   Stream<List<MarketFeedItem>> watchFeedForTrader() {
@@ -171,9 +166,7 @@ class MarketService {
       throw StateError('Not signed in');
     }
 
-    if (!expiresAt.isAfter(DateTime.now())) {
-      throw ArgumentError('expiresAt must be in the future');
-    }
+    MarketRules.ensureExpiresInFuture(expiresAt);
 
     final req = BuyerRequirement(
       id: '',
@@ -226,7 +219,13 @@ class MarketService {
         if (wasNew && reqSnap != null) {
           final current =
               (reqSnap.data()?['interestedCount'] as num?)?.toInt() ?? 0;
-          tx.update(reqRef, {'interestedCount': current + 1});
+          final next = MarketRules.nextInterestedCount(
+            wasNewInterest: true,
+            currentCount: current,
+          );
+          if (next != null) {
+            tx.update(reqRef, {'interestedCount': next});
+          }
         }
       });
     } on FirebaseException catch (e) {
