@@ -268,10 +268,16 @@ class MarketService {
 
     if (farmers.isEmpty) return farmers;
 
+    // Enrich from userSettings when readable. Traders often cannot read other
+    // users' profiles (rules: auth.uid == uid) — never fail the sheet for that.
     final profiles = await Future.wait(
-      farmers.map(
-        (f) => UserProfileService.instance.getProfileByUid(f.farmerUid),
-      ),
+      farmers.map((f) async {
+        try {
+          return await UserProfileService.instance.getProfileByUid(f.farmerUid);
+        } catch (_) {
+          return null;
+        }
+      }),
     );
 
     return List<InterestedFarmer>.generate(farmers.length, (i) {
