@@ -38,7 +38,7 @@ const DEMO_USERS = [
       onboardingComplete: true,
       phoneVerified: false,
       displayName: 'Ravi Kumar',
-      phoneNumber: '9849012345',
+      phoneNumber: '9059122848',
     },
     ponds: ['Pond A1', 'Pond A2', 'Pond A3', 'Pond A4'],
   },
@@ -62,7 +62,7 @@ const DEMO_USERS = [
       role: 'trader',
       region: DEMO_REGION,
       displayName: 'Demo Trader Co',
-      phoneNumber: '+919876543210',
+      phoneNumber: '9886134848',
       phoneVerified: true,
       onboardingComplete: true,
     },
@@ -70,7 +70,7 @@ const DEMO_USERS = [
     requirements: [
       {
         traderName: 'Demo Trader Co',
-        traderPhone: '+919876543210',
+        traderPhone: '9886134848',
         countMin: 40,
         countMax: 50,
         quantityNeeded: 800,
@@ -80,7 +80,7 @@ const DEMO_USERS = [
       },
       {
         traderName: 'Demo Trader Co',
-        traderPhone: '+919876543210',
+        traderPhone: '9886134848',
         countMin: 30,
         countMax: 40,
         quantityNeeded: 500,
@@ -90,7 +90,7 @@ const DEMO_USERS = [
       },
       {
         traderName: 'Demo Trader Co',
-        traderPhone: '+919876543210',
+        traderPhone: '9886134848',
         countMin: 35,
         countMax: 45,
         quantityNeeded: 600,
@@ -111,7 +111,7 @@ const DEMO_USERS = [
       onboardingComplete: true,
       phoneVerified: false,
       displayName: 'Suresh Reddy',
-      phoneNumber: '9876543210',
+      phoneNumber: '950528889',
     },
     ponds: [],
   },

@@ -35,7 +35,7 @@ class UserProfileService {
           farmerIntent: FarmerIntent.both,
           region: 'Bhimavaram',
           displayName: 'Ravi Kumar',
-          phoneNumber: '9849012345',
+          phoneNumber: '9059122848',
           onboardingComplete: true,
           createdAt: DateTime.now(),
         );
@@ -55,7 +55,7 @@ class UserProfileService {
           role: UserRole.trader,
           region: 'Bhimavaram',
           displayName: 'Demo Trader Co',
-          phoneNumber: '+919876543210',
+          phoneNumber: '9886134848',
           phoneVerified: true,
           onboardingComplete: true,
           createdAt: DateTime.now(),
@@ -68,7 +68,7 @@ class UserProfileService {
           farmerIntent: FarmerIntent.buyerNotifications,
           region: 'Bhimavaram',
           displayName: 'Suresh Reddy',
-          phoneNumber: '9876543210',
+          phoneNumber: '950528889',
           onboardingComplete: true,
           createdAt: DateTime.now(),
         );
