@@ -1015,6 +1015,19 @@ class AppLocalizationsTe extends AppLocalizations {
   }
 
   @override
+  String get interestedFarmersTitle => 'ఆసక్తి చూపిన రైతులు';
+
+  @override
+  String get interestedFarmersEmpty => 'ఇంకా ఆసక్తి చూపిన రైతులు లేరు.';
+
+  @override
+  String get interestedFarmersLoadError =>
+      'ఆసక్తి చూపిన రైతులను లోడ్ చేయలేకపోయాం.';
+
+  @override
+  String get noPhoneAvailable => 'ఫోన్ నంబర్ అందుబాటులో లేదు';
+
+  @override
   String get interestRecordError =>
       'మీ ఆసక్తిని నమోదు చేయలేకపోయాం. మళ్లీ ప్రయత్నించండి.';
 

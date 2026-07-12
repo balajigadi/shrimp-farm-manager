@@ -2,6 +2,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:prawn_farm_app/app/navigation.dart';
+import 'notification_service.dart';
 import 'user_profile_service.dart';
 
 /// FCM push for new market requirements + tap routing to [MarketScreen].
@@ -11,6 +12,9 @@ class FcmService {
   static final FcmService instance = FcmService._();
 
   final FirebaseMessaging _messaging = FirebaseMessaging.instance;
+
+  bool get _isIos =>
+      !kIsWeb && defaultTargetPlatform == TargetPlatform.iOS;
 
   /// Notifies [AppShell] to switch to Market and highlight a requirement.
   final ValueNotifier<String?> marketHighlightRequirementId =
@@ -31,11 +35,32 @@ class FcmService {
 
     try {
       await _ensureAndroidNotificationChannel();
-      await _messaging.requestPermission();
-      final token = await _messaging.getToken();
-      if (token != null) {
-        await UserProfileService.instance.saveFcmToken(token);
+      await _messaging.requestPermission(
+        alert: true,
+        badge: true,
+        sound: true,
+      );
+
+      // iOS: APNs token must exist before FCM token fetch, otherwise getToken()
+      // often returns null / fails on physical devices.
+      if (_isIos) {
+        var apnsToken = await _messaging.getAPNSToken();
+        // APNs registration can lag briefly after registerForRemoteNotifications.
+        if (apnsToken == null) {
+          await Future<void>.delayed(const Duration(seconds: 2));
+          apnsToken = await _messaging.getAPNSToken();
+        }
+        if (apnsToken == null) {
+          debugPrint(
+            'FcmService: APNs token is null — skipping FCM token registration',
+          );
+        } else {
+          await _saveFcmToken();
+        }
+      } else {
+        await _saveFcmToken();
       }
+
       _messaging.onTokenRefresh.listen((newToken) {
         UserProfileService.instance.saveFcmToken(newToken);
       });
@@ -49,6 +74,13 @@ class FcmService {
       }
     } catch (e) {
       debugPrint('FcmService.init failed: $e');
+    }
+  }
+
+  Future<void> _saveFcmToken() async {
+    final token = await _messaging.getToken();
+    if (token != null) {
+      await UserProfileService.instance.saveFcmToken(token);
     }
   }
 
@@ -78,8 +110,27 @@ class FcmService {
     navigateToRequirement(id);
   }
 
-  void _handleForegroundMessage(RemoteMessage message) {
+  Future<void> _handleForegroundMessage(RemoteMessage message) async {
     debugPrint('FCM foreground message: ${message.data}');
+
+    // Android already surfaces notification payloads via the system tray /
+    // channel. On iOS, foreground FCM does not show a banner unless we display
+    // a local notification.
+    if (!_isIos) return;
+
+    final notification = message.notification;
+    final title = notification?.title ?? 'New buyer requirement near you';
+    final body = notification?.body ?? '';
+    if (body.isEmpty && notification == null) return;
+
+    final requirementId = _extractRequirementId(message);
+    await NotificationService.instance.showForegroundPushNotification(
+      title: title,
+      body: body.isEmpty ? title : body,
+      payload: requirementId == null
+          ? null
+          : '{"type":"market_requirement","requirementId":"$requirementId"}',
+    );
   }
 
   void _storePendingRequirement(String? requirementId) {

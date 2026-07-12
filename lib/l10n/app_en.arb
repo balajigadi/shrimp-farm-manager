@@ -391,6 +391,10 @@
       }
     }
   },
+  "interestedFarmersTitle": "Interested farmers",
+  "interestedFarmersEmpty": "No interested farmers yet.",
+  "interestedFarmersLoadError": "Could not load interested farmers.",
+  "noPhoneAvailable": "No phone number available",
   "interestRecordError": "Could not record your interest. Try again.",
   "countMinLessThanMax": "Count min must be less than count max",
   "expiryDateLabel": "Expiry date",

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:prawn_farm_app/services/notification_service.dart';
@@ -36,10 +37,19 @@ Future<void> main() async {
     return;
   }
 
+  // iOS: finish FCM/APNs permission + token registration before first frame so
+  // getAPNSToken() is not racing the UI. Android keeps post-runApp init to
+  // avoid the blank-screen startup delay.
+  final isIos = !kIsWeb && defaultTargetPlatform == TargetPlatform.iOS;
+  if (isIos) {
+    await FcmService.instance.init();
+  }
+
   runApp(const PrawnFarmApp());
 
-  // FCM scaffold (push for new market requirements needs a Cloud Function).
-  FcmService.instance.init().catchError((_) {});
+  if (!isIos) {
+    FcmService.instance.init().catchError((_) {});
+  }
 
   // Run notification setup after the UI is already on screen.
   NotificationService.instance.init().then((_) async {

@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -188,6 +189,36 @@ class NotificationService {
   }
 
   Future<void> cancelAll() => _plugin.cancelAll();
+
+  /// iOS-only helper: show an FCM message while the app is in the foreground.
+  /// Android foreground/background tray behavior is unchanged.
+  Future<void> showForegroundPushNotification({
+    required String title,
+    required String body,
+    String? payload,
+  }) async {
+    if (kIsWeb || defaultTargetPlatform != TargetPlatform.iOS) return;
+
+    if (!_initialized) {
+      await init();
+    }
+
+    const details = NotificationDetails(
+      iOS: DarwinNotificationDetails(
+        presentAlert: true,
+        presentBadge: true,
+        presentSound: true,
+      ),
+    );
+
+    await _plugin.show(
+      DateTime.now().millisecondsSinceEpoch.remainder(100000),
+      title,
+      body,
+      details,
+      payload: payload,
+    );
+  }
 
   /// Schedules a test notification in [seconds] from now. Use for testing.
   Future<void> scheduleTestNotification({int seconds = 10}) async {

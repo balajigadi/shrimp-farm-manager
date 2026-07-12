@@ -1006,6 +1006,18 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get interestedFarmersTitle => 'Interested farmers';
+
+  @override
+  String get interestedFarmersEmpty => 'No interested farmers yet.';
+
+  @override
+  String get interestedFarmersLoadError => 'Could not load interested farmers.';
+
+  @override
+  String get noPhoneAvailable => 'No phone number available';
+
+  @override
   String get interestRecordError =>
       'Could not record your interest. Try again.';
 
