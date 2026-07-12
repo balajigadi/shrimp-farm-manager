@@ -9,43 +9,37 @@
  * - userSettings.farmerIntent: 'buyer_notifications' | 'manage_farm' | 'both'
  *
  * Requires Firebase Blaze plan (pay-as-you-go). Cloud Functions do not run on Spark.
- *
- * Follow-up (Flutter): FcmService has no onMessageOpenedApp / deep-link handler yet.
- * data.requirementId is included for a future Market screen route.
  */
 import * as admin from "firebase-admin";
 import { onDocumentCreated } from "firebase-functions/v2/firestore";
 import { clearInvalidFcmTokens, type FcmTokenTarget } from "./cleanupInvalidTokens";
+import {
+  buildNotificationBody,
+  DAILY_NOTIFICATION_CAP,
+  farmerWantsMarketNotifications,
+  shouldSkipForDailyCap,
+  type RequirementNotifyInput,
+  type UserSettingsNotifyInput,
+} from "./notifyHelpers";
 
 const db = admin.firestore();
 const messaging = admin.messaging();
-
-/** Hard backstop: max 5 trader posts per day that trigger farmer notifications. */
-const DAILY_NOTIFICATION_CAP = 5;
 
 const FCM_MULTICAST_LIMIT = 500;
 
 /** Matches NotificationService timezone in the Flutter app. */
 const MARKET_TIMEZONE = "Asia/Kolkata";
 
-type RequirementDoc = {
+type RequirementDoc = RequirementNotifyInput & {
   traderId?: string;
-  traderName?: string;
-  traderPhone?: string;
-  countRange?: { min?: number; max?: number };
-  quantityNeeded?: number;
-  unit?: string;
   region?: string[];
   status?: string;
   createdAt?: admin.firestore.Timestamp;
 };
 
-type UserSettingsDoc = {
+type UserSettingsDoc = UserSettingsNotifyInput & {
   uid?: string;
-  role?: string;
-  farmerIntent?: string;
   region?: string;
-  fcmToken?: string;
 };
 
 function startOfTodayKolkata(): Date {
@@ -57,23 +51,6 @@ function startOfTodayKolkata(): Date {
     day: "2-digit",
   }).format(now);
   return new Date(`${dateStr}T00:00:00+05:30`);
-}
-
-function farmerWantsMarketNotifications(data: UserSettingsDoc): boolean {
-  if (data.role !== "farmer") {
-    return false;
-  }
-  const intent = data.farmerIntent;
-  return intent === "buyer_notifications" || intent === "both";
-}
-
-function buildNotificationBody(req: RequirementDoc): string {
-  const traderName = req.traderName?.trim() || "A trader";
-  const quantityNeeded = req.quantityNeeded ?? 0;
-  const unit = req.unit ?? "kg";
-  const min = req.countRange?.min ?? 0;
-  const max = req.countRange?.max ?? 0;
-  return `${traderName} needs ${quantityNeeded}${unit}, count ${min}-${max}`;
 }
 
 async function countTraderPostsToday(traderId: string): Promise<number> {
@@ -234,7 +211,7 @@ export const onRequirementCreated = onDocumentCreated(
     }
 
     const postsToday = await countTraderPostsToday(traderId);
-    if (postsToday > DAILY_NOTIFICATION_CAP) {
+    if (shouldSkipForDailyCap(postsToday)) {
       console.info("Daily cap exceeded; skipping farmer notifications", {
         requirementId,
         traderId,
