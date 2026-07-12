@@ -18,9 +18,9 @@ const db = admin.firestore();
 //   demo4@prawnfarm.com  — Farmer "buyer_notifications": Market only (no ponds)
 // Password for all: Demo@123
 const USER_FARMER_BOTH_UID = 'n4gVfQBF2YR9D2zKkCki20PPBt53';
-const USER_SUPERVISOR_UID = 'SUKp0kQKVCXZDMhqCZEAx37rHju2';
-const USER_TRADER_UID = 'PASTE_DEMO3_UID_HERE';
-const USER_BUYER_FARMER_UID = 'PASTE_DEMO4_UID_HERE';
+const USER_SUPERVISOR_UID = '1Ts3Iglr3cWQr0OlcncdaLrgJpK2';
+const USER_TRADER_UID = 'TOFAiGt3JnZQSVLUVdosDsKkrB53';
+const USER_BUYER_FARMER_UID = 'Jtl6sTdKHwWpGYYrMDQO1Jc8DYB3';
 
 const WIPE_EXISTING = true;
 
