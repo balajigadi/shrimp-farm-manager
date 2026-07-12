@@ -384,6 +384,10 @@
       }
     }
   },
+  "interestedFarmersTitle": "ఆసక్తి చూపిన రైతులు",
+  "interestedFarmersEmpty": "ఇంకా ఆసక్తి చూపిన రైతులు లేరు.",
+  "interestedFarmersLoadError": "ఆసక్తి చూపిన రైతులను లోడ్ చేయలేకపోయాం.",
+  "noPhoneAvailable": "ఫోన్ నంబర్ అందుబాటులో లేదు",
   "interestRecordError": "మీ ఆసక్తిని నమోదు చేయలేకపోయాం. మళ్లీ ప్రయత్నించండి.",
   "countMinLessThanMax": "కనిష్ట కౌంట్ గరిష్ట కౌంట్ కంటే తక్కువగా ఉండాలి",
   "expiryDateLabel": "గడువు తేదీ",

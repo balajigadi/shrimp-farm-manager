@@ -2018,6 +2018,30 @@ abstract class AppLocalizations {
   /// **'{count} farmer(s) interested'**
   String farmersInterested(int count);
 
+  /// No description provided for @interestedFarmersTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Interested farmers'**
+  String get interestedFarmersTitle;
+
+  /// No description provided for @interestedFarmersEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No interested farmers yet.'**
+  String get interestedFarmersEmpty;
+
+  /// No description provided for @interestedFarmersLoadError.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not load interested farmers.'**
+  String get interestedFarmersLoadError;
+
+  /// No description provided for @noPhoneAvailable.
+  ///
+  /// In en, this message translates to:
+  /// **'No phone number available'**
+  String get noPhoneAvailable;
+
   /// No description provided for @interestRecordError.
   ///
   /// In en, this message translates to:

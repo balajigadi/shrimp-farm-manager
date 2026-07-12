@@ -353,12 +353,32 @@ class _MarketScreenState extends State<MarketScreen> {
             ),
             if (isTrader && req.interestedCount > 0) ...[
               const SizedBox(height: 6),
-              Text(
-                l10n.farmersInterested(req.interestedCount),
-                style: TextStyle(
-                  fontSize: 13,
-                  color: Colors.teal.shade800,
-                  fontWeight: FontWeight.w600,
+              InkWell(
+                onTap: () => _showInterestedFarmers(context, req),
+                borderRadius: BorderRadius.circular(6),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 2),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        l10n.farmersInterested(req.interestedCount),
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: Colors.teal.shade800,
+                          fontWeight: FontWeight.w600,
+                          decoration: TextDecoration.underline,
+                          decorationColor: Colors.teal.shade800,
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      Icon(
+                        Icons.chevron_right,
+                        size: 18,
+                        color: Colors.teal.shade800,
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ],
@@ -397,6 +417,141 @@ class _MarketScreenState extends State<MarketScreen> {
           ],
         ),
       ),
+    );
+  }
+
+  Future<void> _showInterestedFarmers(
+    BuildContext context,
+    BuyerRequirement req,
+  ) async {
+    if (req.interestedCount <= 0) return;
+
+    final parentContext = context;
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      builder: (sheetContext) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+            child: FutureBuilder<List<InterestedFarmer>>(
+              future: MarketService.instance.fetchInterestedFarmers(req.id),
+              builder: (context, snapshot) {
+                final l10n = AppLocalizations.of(context)!;
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        l10n.interestedFarmersTitle,
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                      const SizedBox(height: 24),
+                      const CircularProgressIndicator(),
+                      const SizedBox(height: 24),
+                    ],
+                  );
+                }
+
+                if (snapshot.hasError) {
+                  return Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Text(
+                        l10n.interestedFarmersTitle,
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                      const SizedBox(height: 16),
+                      Text(l10n.interestedFarmersLoadError),
+                    ],
+                  );
+                }
+
+                final farmers = snapshot.data ?? const <InterestedFarmer>[];
+                if (farmers.isEmpty) {
+                  return Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Text(
+                        l10n.interestedFarmersTitle,
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                      const SizedBox(height: 16),
+                      Text(l10n.interestedFarmersEmpty),
+                    ],
+                  );
+                }
+
+                return Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Text(
+                      l10n.interestedFarmersTitle,
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      l10n.farmersInterested(farmers.length),
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: Colors.grey.shade700,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    ConstrainedBox(
+                      constraints: BoxConstraints(
+                        maxHeight: MediaQuery.sizeOf(context).height * 0.55,
+                      ),
+                      child: ListView.separated(
+                        shrinkWrap: true,
+                        itemCount: farmers.length,
+                        separatorBuilder: (context, index) => const Divider(height: 1),
+                        itemBuilder: (context, index) {
+                          final farmer = farmers[index];
+                          final regionLabel = farmer.region.isEmpty
+                              ? '—'
+                              : farmer.region;
+                          return ListTile(
+                            contentPadding: EdgeInsets.zero,
+                            title: Text(
+                              farmer.displayName,
+                              style: const TextStyle(fontWeight: FontWeight.w600),
+                            ),
+                            subtitle: Text('${l10n.region}: $regionLabel'),
+                            trailing: OutlinedButton.icon(
+                              onPressed: farmer.phoneNumber.isEmpty
+                                  ? () {
+                                      ScaffoldMessenger.of(parentContext)
+                                          .showSnackBar(
+                                        SnackBar(
+                                          content: Text(l10n.noPhoneAvailable),
+                                        ),
+                                      );
+                                    }
+                                  : () async {
+                                      Navigator.pop(sheetContext);
+                                      await _openWhatsApp(
+                                        parentContext,
+                                        farmer.phoneNumber,
+                                      );
+                                    },
+                              icon: const Icon(Icons.chat, size: 18),
+                              label: const Text('WhatsApp'),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                );
+              },
+            ),
+          ),
+        );
+      },
     );
   }
 

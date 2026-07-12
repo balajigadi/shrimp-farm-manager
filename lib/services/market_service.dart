@@ -5,6 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../features/market/requirement_model.dart';
 import 'market_feed_builder.dart';
 import 'market_rules.dart';
+import 'user_profile_service.dart';
 /// Firestore-backed market feed; uses [MarketFeedBuilder] for filtering/sorting.
 class MarketService {
   MarketService._();
@@ -194,6 +195,12 @@ class MarketService {
       throw StateError('Not signed in');
     }
 
+    final profile = await UserProfileService.instance.getProfile();
+    final displayName = profile?.displayName?.trim();
+    final email = profile?.email?.trim();
+    final region = profile?.region?.trim() ?? '';
+    final phoneNumber = profile?.phoneNumber?.trim() ?? '';
+
     final reqRef = _requirementsCol.doc(requirementId);
     final interestRef = reqRef.collection('interested').doc(uid);
 
@@ -214,6 +221,12 @@ class MarketService {
         tx.set(interestRef, {
           'farmerUid': uid,
           'timestamp': FieldValue.serverTimestamp(),
+          'displayName': (displayName != null && displayName.isNotEmpty)
+              ? displayName
+              : (email ?? ''),
+          'email': email ?? '',
+          'region': region,
+          'phoneNumber': phoneNumber,
         });
 
         if (wasNew && reqSnap != null) {
@@ -231,6 +244,27 @@ class MarketService {
     } on FirebaseException catch (e) {
       throw StateError('Failed to record interest: ${e.message ?? e.code}');
     }
+  }
+
+  /// Lazy-load farmers who marked interest (trader view). Call only on tap.
+  Future<List<InterestedFarmer>> fetchInterestedFarmers(
+    String requirementId,
+  ) async {
+    final snap = await _requirementsCol
+        .doc(requirementId)
+        .collection('interested')
+        .get();
+
+    final farmers = snap.docs.map(InterestedFarmer.fromDoc).toList();
+    farmers.sort((a, b) {
+      final at = a.timestamp;
+      final bt = b.timestamp;
+      if (at == null && bt == null) return 0;
+      if (at == null) return 1;
+      if (bt == null) return -1;
+      return bt.compareTo(at);
+    });
+    return farmers;
   }
 
   Future<void> updateRequirementStatus(

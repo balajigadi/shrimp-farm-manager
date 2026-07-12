@@ -128,3 +128,35 @@ class MarketFeedItem {
     required this.isExpired,
   });
 }
+
+/// Farmer who marked interest on a trader requirement (denormalized snapshot).
+class InterestedFarmer {
+  final String farmerUid;
+  final String displayName;
+  final String region;
+  final String phoneNumber;
+  final DateTime? timestamp;
+
+  const InterestedFarmer({
+    required this.farmerUid,
+    required this.displayName,
+    required this.region,
+    required this.phoneNumber,
+    this.timestamp,
+  });
+
+  factory InterestedFarmer.fromDoc(DocumentSnapshot<Map<String, dynamic>> doc) {
+    final data = doc.data() ?? {};
+    final name = (data['displayName'] as String?)?.trim() ?? '';
+    final email = (data['email'] as String?)?.trim() ?? '';
+    return InterestedFarmer(
+      farmerUid: data['farmerUid'] as String? ?? doc.id,
+      displayName: name.isNotEmpty
+          ? name
+          : (email.isNotEmpty ? email : 'Farmer'),
+      region: (data['region'] as String?)?.trim() ?? '',
+      phoneNumber: (data['phoneNumber'] as String?)?.trim() ?? '',
+      timestamp: (data['timestamp'] as Timestamp?)?.toDate(),
+    );
+  }
+}
