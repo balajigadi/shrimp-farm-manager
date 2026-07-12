@@ -68,7 +68,7 @@ class UserProfileService {
           farmerIntent: FarmerIntent.buyerNotifications,
           region: 'Bhimavaram',
           displayName: 'Suresh Reddy',
-          phoneNumber: '950528889',
+          phoneNumber: '9505288889',
           onboardingComplete: true,
           createdAt: DateTime.now(),
         );

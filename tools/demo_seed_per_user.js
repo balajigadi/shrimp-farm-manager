@@ -111,7 +111,7 @@ const DEMO_USERS = [
       onboardingComplete: true,
       phoneVerified: false,
       displayName: 'Suresh Reddy',
-      phoneNumber: '950528889',
+      phoneNumber: '9505288889',
     },
     ponds: [],
   },

@@ -28,8 +28,7 @@ const PATCHES = [
     email: 'demo4@prawnfarm.com',
     role: 'farmer',
     displayName: 'Suresh Reddy',
-    // User provided 9 digits — left as-is; confirm full 10-digit number for WhatsApp.
-    phoneNumber: '950528889',
+    phoneNumber: '9505288889',
     region: 'Bhimavaram',
   },
   {
