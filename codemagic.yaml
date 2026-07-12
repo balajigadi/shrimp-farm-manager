@@ -50,7 +50,10 @@ workflows:
         script: find . -name "Podfile" -execdir pod install \;
       - name: Flutter build ipa
         script: |
+          # PROJECT_BUILD_NUMBER is unique per Codemagic build — avoids ASC
+          # "bundle version must be higher than previously uploaded" errors.
           flutter build ipa --release \
+            --build-number=$PROJECT_BUILD_NUMBER \
             --export-options-plist=/Users/builder/export_options.plist
     artifacts:
       - build/ios/ipa/*.ipa
