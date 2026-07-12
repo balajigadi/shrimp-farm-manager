@@ -59,4 +59,6 @@ workflows:
     publishing:
       app_store_connect:
         auth: integration
-        submit_to_testflight: true
+        # Upload only — Account Holder can install via Internal Testing.
+        # External beta submit needs TestFlight "Test Information" filled in ASC.
+        submit_to_testflight: false

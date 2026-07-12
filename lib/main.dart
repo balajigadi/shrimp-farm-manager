@@ -10,7 +10,31 @@ Future<void> main() async {
   // Firebase is required for auth/Firestore, but notification scheduling should
   // never block the first UI render (Android would otherwise show a blank
   // screen / launcher icon while awaiting initialization).
-  await Firebase.initializeApp();
+  Object? firebaseError;
+  try {
+    await Firebase.initializeApp();
+  } catch (e) {
+    firebaseError = e;
+  }
+
+  if (firebaseError != null) {
+    runApp(
+      MaterialApp(
+        home: Scaffold(
+          body: Center(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Text(
+                'Firebase failed to start.\n\n$firebaseError',
+                textAlign: TextAlign.center,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    return;
+  }
 
   runApp(const PrawnFarmApp());
 
