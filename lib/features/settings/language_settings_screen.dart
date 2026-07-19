@@ -437,6 +437,7 @@ class _LanguageSettingsScreenState extends State<LanguageSettingsScreen> {
                   foregroundColor: Colors.red.shade700,
                 ),
                 onPressed: () async {
+                  await NotificationService.instance.clearFarmAlerts();
                   await FirebaseAuth.instance.signOut();
                   if (!context.mounted) return;
                   Navigator.of(context, rootNavigator: true)

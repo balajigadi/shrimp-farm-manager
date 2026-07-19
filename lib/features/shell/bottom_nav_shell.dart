@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:prawn_farm_app/l10n/app_localizations.dart';
+import 'package:prawn_farm_app/services/notification_service.dart';
 import '../pond/pond_overview_screen.dart';
 import '../water/water_log_screen.dart';
 import '../feed/feed_screen.dart';
@@ -124,7 +125,10 @@ class _BottomNavShellState extends State<BottomNavShell> {
                 onPressed: () => LanguageSettingsScreen.open(context),
               ),
               TextButton(
-                onPressed: () => FirebaseAuth.instance.signOut(),
+                onPressed: () async {
+                  await NotificationService.instance.clearFarmAlerts();
+                  await FirebaseAuth.instance.signOut();
+                },
                 child: const Text('Log out'),
               ),
             ],

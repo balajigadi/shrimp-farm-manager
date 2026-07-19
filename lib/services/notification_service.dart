@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -5,6 +6,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:prawn_farm_app/features/profile/user_profile.dart';
+import 'package:prawn_farm_app/services/user_profile_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:timezone/data/latest.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
@@ -35,6 +38,8 @@ class NotificationService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
 
   bool _initialized = false;
+  StreamSubscription<User?>? _authSub;
+  String? _syncedUid;
 
   String? get _currentUid => FirebaseAuth.instance.currentUser?.uid;
   String _localSettingsKey(String uid) => 'alert_settings_$uid';
@@ -161,6 +166,57 @@ class NotificationService {
 
     // Request permission on Android 13+ and iOS.
     await _requestPermissions();
+
+    // Farm DO/feed/expense reminders are device-local. Clear them on logout so
+    // trader / other accounts on the same phone do not keep receiving them.
+    _authSub ??= FirebaseAuth.instance.authStateChanges().listen((user) async {
+      if (user == null) {
+        _syncedUid = null;
+        try {
+          await cancelAll();
+        } catch (_) {}
+      }
+    });
+  }
+
+  /// Schedules farm reminders only for roles that use farm tabs.
+  /// Traders and market-only farmers get no DO/feed/expense local alerts.
+  /// Settings are always loaded/saved under the signed-in uid only.
+  Future<void> syncAlertsForProfile(UserProfile profile) async {
+    if (!_initialized) {
+      await init();
+    }
+
+    if (!profile.showsFarmTabs) {
+      _syncedUid = profile.uid;
+      await cancelAll();
+      return;
+    }
+
+    try {
+      final saved = await loadAlertSettings();
+      if (saved != null) {
+        await applyAlertSettings(
+          enabled: saved.enabled,
+          waterTime: saved.waterTime,
+          feedTimes: saved.feedTimes,
+          expenseTime: saved.expenseTime,
+          persist: false,
+        );
+      } else if (_syncedUid != profile.uid) {
+        // First farm session for this account: schedule defaults once.
+        await scheduleDefaultMvpAlerts();
+      }
+      _syncedUid = profile.uid;
+    } catch (_) {
+      // Notification failures shouldn't break navigation.
+    }
+  }
+
+  /// Clears all scheduled farm reminders (e.g. after logout).
+  Future<void> clearFarmAlerts() async {
+    _syncedUid = null;
+    await cancelAll();
   }
 
   Future<void> _requestPermissions() async {
@@ -356,6 +412,12 @@ class NotificationService {
   }
 
   Future<void> scheduleDefaultMvpAlerts() async {
+    final profile = await UserProfileService.instance.getProfile();
+    if (profile == null || !profile.showsFarmTabs) {
+      await cancelAll();
+      return;
+    }
+
     final copy = await _copyForLocale();
     // Feed reminders – 5 times per day.
     await scheduleDaily(
@@ -424,6 +486,7 @@ class NotificationService {
   }
 
   /// Replaces all configured reminders with user-selected times.
+  /// Persists under the current uid only; schedules only if this user has farm tabs.
   Future<void> applyAlertSettings({
     required bool enabled,
     required TimeOfDay waterTime,
@@ -431,8 +494,10 @@ class NotificationService {
     TimeOfDay? expenseTime,
     bool persist = true,
   }) async {
-    final copy = await _copyForLocale();
-    if (persist) {
+    final profile = await UserProfileService.instance.getProfile();
+    final canScheduleFarmAlerts = profile?.showsFarmTabs ?? false;
+
+    if (persist && canScheduleFarmAlerts) {
       await saveAlertSettings(
         AlertSettings(
           enabled: enabled,
@@ -444,7 +509,9 @@ class NotificationService {
     }
 
     await cancelAll();
-    if (!enabled) return;
+    if (!canScheduleFarmAlerts || !enabled) return;
+
+    final copy = await _copyForLocale();
 
     // Water quality – daily.
     await scheduleDaily(
