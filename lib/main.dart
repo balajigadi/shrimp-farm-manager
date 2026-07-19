@@ -51,26 +51,9 @@ Future<void> main() async {
     FcmService.instance.init().catchError((_) {});
   }
 
-  // Run notification setup after the UI is already on screen.
-  NotificationService.instance.init().then((_) async {
-    try {
-      final saved = await NotificationService.instance.loadAlertSettings();
-      if (saved != null) {
-        await NotificationService.instance.applyAlertSettings(
-          enabled: saved.enabled,
-          waterTime: saved.waterTime,
-          feedTimes: saved.feedTimes,
-          expenseTime: saved.expenseTime,
-          // Already persisted; just re-apply on startup.
-          persist: false,
-        );
-      } else {
-        await NotificationService.instance.scheduleDefaultMvpAlerts();
-      }
-    } catch (_) {
-      // Notification failures shouldn't prevent the app from opening.
-    }
-  }).catchError((_) {
+  // Local notification plugin only — do NOT schedule DO/feed/expense defaults
+  // here. Those are role-gated and synced per signed-in farm user in AppShell.
+  NotificationService.instance.init().catchError((_) {
     // If notification initialization fails, don't crash at startup.
   });
 }

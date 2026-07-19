@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:prawn_farm_app/l10n/app_localizations.dart';
 import 'package:prawn_farm_app/services/fcm_service.dart';
+import 'package:prawn_farm_app/services/notification_service.dart';
 import '../profile/user_profile.dart';
 import '../pond/pond_overview_screen.dart';
 import '../water/water_log_screen.dart';
@@ -37,6 +38,17 @@ class _AppShellState extends State<AppShell> {
     FcmService.instance.marketHighlightRequirementId
         .addListener(_onMarketHighlightRequest);
     _loadPendingNotificationRoute();
+    // Bind DO/feed/expense local alerts to this account only (or clear for traders).
+    NotificationService.instance.syncAlertsForProfile(widget.profile);
+  }
+
+  @override
+  void didUpdateWidget(covariant AppShell oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.profile.uid != widget.profile.uid ||
+        oldWidget.profile.showsFarmTabs != widget.profile.showsFarmTabs) {
+      NotificationService.instance.syncAlertsForProfile(widget.profile);
+    }
   }
 
   Future<void> _loadPendingNotificationRoute() async {
@@ -198,7 +210,10 @@ class _AppShellState extends State<AppShell> {
                 onPressed: () => LanguageSettingsScreen.open(context),
               ),
               TextButton(
-                onPressed: () => FirebaseAuth.instance.signOut(),
+                onPressed: () async {
+                  await NotificationService.instance.clearFarmAlerts();
+                  await FirebaseAuth.instance.signOut();
+                },
                 child: const Text('Log out'),
               ),
             ],
