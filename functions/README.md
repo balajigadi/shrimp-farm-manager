@@ -5,7 +5,7 @@
 `onRequirementCreated` fires when a document is created in `requirements/{id}`:
 
 1. **Rate limit** — counts today's posts for `traderId` (Asia/Kolkata midnight). If **> 5**, sets `notificationsSkipped: true` and `skipReason: "daily_cap_exceeded"` on the requirement (no FCM).
-2. **Farmer lookup** — queries `userSettings` where `region` **equals** one of the requirement's `region` array values (`where('region', 'in', ...)`), matching the inverse of client `arrayContains`.
+2. **Farmer lookup** — queries `userSettings` where `role == farmer`, `farmerIntent` in `buyer_notifications` | `both`, and `region` equals a requirement mandal. Excludes the posting `traderId`. Logs `recipientUids` before FCM send.
 3. **Filters** — `role == farmer`, `farmerIntent` in `buyer_notifications` | `both`, non-empty `fcmToken`, excludes posting trader.
 4. **FCM** — `sendEachForMulticast` in batches of 500; clears invalid tokens via `cleanupInvalidTokens.ts`.
 

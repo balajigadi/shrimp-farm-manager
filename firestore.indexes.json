@@ -88,11 +88,12 @@
       ]
     },
     {
-      "collectionGroup": "requirements",
+      "collectionGroup": "userSettings",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "traderId", "order": "ASCENDING" },
-        { "fieldPath": "createdAt", "order": "ASCENDING" }
+        { "fieldPath": "role", "order": "ASCENDING" },
+        { "fieldPath": "farmerIntent", "order": "ASCENDING" },
+        { "fieldPath": "region", "order": "ASCENDING" }
       ]
     }
   ],

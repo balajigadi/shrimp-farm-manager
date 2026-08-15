@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:prawn_farm_app/data/regions.dart';
 import 'package:prawn_farm_app/l10n/app_localizations.dart';
 import '../profile/user_profile.dart';
 import '../../services/market_service.dart';
@@ -24,15 +23,28 @@ class _PostRequirementScreenState extends State<PostRequirementScreen> {
   final _countMinController = TextEditingController();
   final _countMaxController = TextEditingController();
   final _priceController = TextEditingController();
+  static const List<String> _postRegions = [
+    'Bhimavaram',
+    'Narasapur',
+    'Amalapuram',
+    'Kakinada',
+    'Rajahmundry',
+    'Nellore',
+    'Other',
+  ];
+
   String _unit = 'kg';
-  String? _region;
+  final Set<String> _selectedRegions = {};
   DateTime? _expiresAt;
   bool _saving = false;
 
   @override
   void initState() {
     super.initState();
-    _region = widget.profile.region;
+    final profileRegion = widget.profile.region;
+    if (profileRegion != null && _postRegions.contains(profileRegion)) {
+      _selectedRegions.add(profileRegion);
+    }
     final now = DateTime.now();
     _expiresAt = DateTime(now.year, now.month, now.day).add(const Duration(days: 7));
   }
@@ -174,17 +186,64 @@ class _PostRequirementScreenState extends State<PostRequirementScreen> {
               ),
             ),
             const SizedBox(height: 12),
-            DropdownButtonFormField<String>(
-              value: _region,
-              decoration: InputDecoration(
-                labelText: l10n.onboardingRegionLabel,
-                border: const OutlineInputBorder(),
-              ),
-              items: FarmRegions.mandals
-                  .map((m) => DropdownMenuItem(value: m, child: Text(m)))
-                  .toList(),
-              onChanged: (v) => setState(() => _region = v),
-              validator: (v) => v == null ? l10n.selectRegion : null,
+            FormField<Set<String>>(
+              validator: (_) => _selectedRegions.isEmpty
+                  ? l10n.selectAtLeastOneRegion
+                  : null,
+              builder: (field) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      l10n.onboardingRegionLabel,
+                      style: const TextStyle(fontWeight: FontWeight.w500),
+                    ),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: _postRegions.map((region) {
+                        final selected = _selectedRegions.contains(region);
+                        return FilterChip(
+                          label: Text(region),
+                          selected: selected,
+                          onSelected: (_) {
+                            setState(() {
+                              if (selected) {
+                                _selectedRegions.remove(region);
+                              } else {
+                                _selectedRegions.add(region);
+                              }
+                            });
+                            field.didChange(_selectedRegions);
+                          },
+                          selectedColor:
+                              const Color(0xFF00C853).withValues(alpha: 0.15),
+                          labelStyle: TextStyle(
+                            color: selected
+                                ? const Color(0xFF00C853)
+                                : Colors.black87,
+                            fontWeight: selected
+                                ? FontWeight.w600
+                                : FontWeight.normal,
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                    if (field.hasError)
+                      Padding(
+                        padding: const EdgeInsets.only(left: 4, top: 6),
+                        child: Text(
+                          field.errorText!,
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.error,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ),
+                  ],
+                );
+              },
             ),
             const SizedBox(height: 12),
             FormField<DateTime>(
@@ -237,7 +296,7 @@ class _PostRequirementScreenState extends State<PostRequirementScreen> {
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
-    if (_region == null || _expiresAt == null) return;
+    if (_selectedRegions.isEmpty || _expiresAt == null) return;
 
     setState(() => _saving = true);
     try {
@@ -252,7 +311,7 @@ class _PostRequirementScreenState extends State<PostRequirementScreen> {
         quantityNeeded: double.parse(_quantityController.text.trim()),
         unit: _unit,
         pricePerKg: price,
-        region: [_region!],
+        region: _selectedRegions.toList(growable: false),
         expiresAt: _expiresAt!,
       );
       if (!mounted) return;

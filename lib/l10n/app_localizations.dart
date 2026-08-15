@@ -2012,6 +2012,12 @@ abstract class AppLocalizations {
   /// **'Select a region'**
   String get selectRegion;
 
+  /// No description provided for @selectAtLeastOneRegion.
+  ///
+  /// In en, this message translates to:
+  /// **'Please select at least one region'**
+  String get selectAtLeastOneRegion;
+
   /// No description provided for @invalidValue.
   ///
   /// In en, this message translates to:

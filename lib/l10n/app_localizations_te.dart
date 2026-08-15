@@ -1008,6 +1008,9 @@ class AppLocalizationsTe extends AppLocalizations {
   String get selectRegion => 'ప్రాంతం ఎంచుకోండి';
 
   @override
+  String get selectAtLeastOneRegion => 'దయచేసి కనీసం ఒక ప్రాంతం ఎంచుకోండి';
+
+  @override
   String get invalidValue => 'సరైన విలువ నమోదు చేయండి';
 
   @override
