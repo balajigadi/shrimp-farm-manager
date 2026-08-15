@@ -16,7 +16,7 @@ import { clearInvalidFcmTokens, type FcmTokenTarget } from "./cleanupInvalidToke
 import {
   buildNotificationBody,
   DAILY_NOTIFICATION_CAP,
-  farmerWantsMarketNotifications,
+  shouldNotifyFarmerTarget,
   shouldSkipForDailyCap,
   type RequirementNotifyInput,
   type UserSettingsNotifyInput,
@@ -66,11 +66,13 @@ async function countTraderPostsToday(traderId: string): Promise<number> {
 /**
  * Find farmers to notify.
  *
- * Client-side MarketService queries requirements with:
- *   .where('region', arrayContains: farmerRegionString)
+ * Query is scoped to eligible farmers only:
+ *   role == 'farmer'
+ *   farmerIntent in ['buyer_notifications', 'both']
+ *   region == one of the requirement mandals
+ * Plus in-memory: non-empty fcmToken, uid != posting traderId.
  *
- * Inverse: for each mandal on the requirement, query userSettings where
- * region == mandal (equality on string field).
+ * Firestore allows only one `in` per query, so we query per mandal.
  */
 async function loadFarmerTargets(
   requirementRegions: string[],
@@ -81,35 +83,54 @@ async function loadFarmerTargets(
     return [];
   }
 
-  // Firestore `in` supports up to 30 values; requirements usually have 1 mandal.
-  const regionsForQuery = uniqueRegions.slice(0, 30);
-  const snap = await db
-    .collection("userSettings")
-    .where("region", "in", regionsForQuery)
-    .get();
+  const snaps = await Promise.all(
+    uniqueRegions.map((region) =>
+      db
+        .collection("userSettings")
+        .where("role", "==", "farmer")
+        .where("farmerIntent", "in", ["buyer_notifications", "both"])
+        .where("region", "==", region)
+        .get(),
+    ),
+  );
 
   const targets: FcmTokenTarget[] = [];
   const seenUids = new Set<string>();
 
-  for (const doc of snap.docs) {
-    const data = doc.data() as UserSettingsDoc;
-    const uid = doc.id;
+  for (const snap of snaps) {
+    for (const doc of snap.docs) {
+      const data = doc.data() as UserSettingsDoc;
+      const uid = doc.id;
 
-    if (uid === traderId || seenUids.has(uid)) {
-      continue;
-    }
-    if (!farmerWantsMarketNotifications(data)) {
-      continue;
-    }
+      if (seenUids.has(uid)) {
+        continue;
+      }
+      if (
+        !shouldNotifyFarmerTarget({
+          uid,
+          traderId,
+          settings: data,
+        })
+      ) {
+        continue;
+      }
 
-    const token = data.fcmToken?.trim();
-    if (!token) {
-      continue;
-    }
+      const token = data.fcmToken?.trim();
+      if (!token) {
+        continue;
+      }
 
-    seenUids.add(uid);
-    targets.push({ uid, token });
+      seenUids.add(uid);
+      targets.push({ uid, token });
+    }
   }
+
+  console.info("onRequirementCreated recipient UIDs", {
+    traderId,
+    regions: uniqueRegions,
+    recipientUids: targets.map((t) => t.uid),
+    recipientCount: targets.length,
+  });
 
   return targets;
 }

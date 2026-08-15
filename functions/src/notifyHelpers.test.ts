@@ -37,6 +37,13 @@ describe("notifyHelpers", () => {
       }),
       false,
     );
+    assert.equal(
+      farmerWantsMarketNotifications({
+        role: "supervisor",
+        farmerIntent: "both",
+      }),
+      false,
+    );
   });
 
   it("builds notification body from requirement fields", () => {
@@ -71,15 +78,27 @@ describe("notifyHelpers", () => {
     );
     assert.equal(
       shouldNotifyFarmerTarget({
-        uid: "f1",
+        uid: "s1",
         traderId: "t1",
         settings: {
-          role: "farmer",
-          farmerIntent: "both",
-          fcmToken: "abc",
+          role: "supervisor",
+          farmerIntent: "manage_farm",
+          fcmToken: "token",
         },
       }),
-      true,
+      false,
+    );
+    assert.equal(
+      shouldNotifyFarmerTarget({
+        uid: "trader2",
+        traderId: "t1",
+        settings: {
+          role: "trader",
+          farmerIntent: "both",
+          fcmToken: "token",
+        },
+      }),
+      false,
     );
   });
 });

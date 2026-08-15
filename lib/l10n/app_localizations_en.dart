@@ -999,6 +999,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get selectRegion => 'Select a region';
 
   @override
+  String get selectAtLeastOneRegion => 'Please select at least one region';
+
+  @override
   String get invalidValue => 'Enter a valid value';
 
   @override

@@ -369,6 +369,7 @@
   "unit": "యూనిట్",
   "pricePerKgOptional": "కిలో ధర (ఐచ్ఛికం)",
   "selectRegion": "ప్రాంతం ఎంచుకోండి",
+  "selectAtLeastOneRegion": "దయచేసి కనీసం ఒక ప్రాంతం ఎంచుకోండి",
   "invalidValue": "సరైన విలువ నమోదు చేయండి",
   "requirementPosted": "అవసరం పోస్ట్ అయింది",
   "traderPhoneRequired": "పోస్ట్ చేయడానికి ముందు ఫోన్ ధృవీకరించండి.",

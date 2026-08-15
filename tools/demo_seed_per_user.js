@@ -400,7 +400,8 @@ async function seedRequirements({ traderId, items, interestedFarmers = [] }) {
       region: item.regions,
       status: 'open',
       interestedCount: 0,
-      expiresAt: admin.firestore.Timestamp.fromDate(daysFromNow(7)),
+      // Keep requirements open through the Aug 16 trader demo (+ buffer).
+      expiresAt: admin.firestore.Timestamp.fromDate(new Date('2026-08-23T18:00:00+05:30')),
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
     };
     if (item.pricePerKg != null) {

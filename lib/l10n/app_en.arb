@@ -376,6 +376,7 @@
   "unit": "Unit",
   "pricePerKgOptional": "Price per kg (optional)",
   "selectRegion": "Select a region",
+  "selectAtLeastOneRegion": "Please select at least one region",
   "invalidValue": "Enter a valid value",
   "requirementPosted": "Requirement posted",
   "traderPhoneRequired": "Verify your phone in onboarding before posting.",
