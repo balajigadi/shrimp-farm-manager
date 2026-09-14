@@ -6,10 +6,12 @@ class FakeSpeechRecognitionService implements SpeechRecognitionService {
     this.available = true,
     this.permissionDenied = false,
     this.scriptedResult = '',
+    this.scriptedResults,
     this.emitOnStart = true,
     this.finalResult = true,
     this.availableLocales = const [
       SpeechLocale(id: 'en_IN', name: 'English (India)'),
+      SpeechLocale(id: 'en_US', name: 'English (US)'),
       SpeechLocale(id: 'te_IN', name: 'Telugu (India)'),
     ],
   });
@@ -17,14 +19,19 @@ class FakeSpeechRecognitionService implements SpeechRecognitionService {
   bool available;
   bool permissionDenied;
   String scriptedResult;
+
+  /// If set, each [startListening] consumes the next entry.
+  List<String>? scriptedResults;
   bool emitOnStart;
   bool finalResult;
   List<SpeechLocale> availableLocales;
   String? lastLocaleId;
+  final List<String?> localeIdHistory = [];
   var _listening = false;
   var initializeCalls = 0;
   var startCalls = 0;
   var stopCalls = 0;
+  var _scriptedIndex = 0;
 
   @override
   bool get isAvailable => available;
@@ -50,6 +57,7 @@ class FakeSpeechRecognitionService implements SpeechRecognitionService {
   }) async {
     startCalls += 1;
     lastLocaleId = localeId;
+    localeIdHistory.add(localeId);
     if (permissionDenied) {
       throw SpeechRecognitionException(SpeechFailure.permissionDenied);
     }
@@ -58,8 +66,19 @@ class FakeSpeechRecognitionService implements SpeechRecognitionService {
     }
     _listening = true;
     if (emitOnStart) {
-      onResult(scriptedResult, isFinal: finalResult);
+      final text = _nextScriptedResult();
+      onResult(text, isFinal: finalResult);
     }
+  }
+
+  String _nextScriptedResult() {
+    final queue = scriptedResults;
+    if (queue != null && queue.isNotEmpty) {
+      final index = _scriptedIndex.clamp(0, queue.length - 1);
+      _scriptedIndex += 1;
+      return queue[index];
+    }
+    return scriptedResult;
   }
 
   @override

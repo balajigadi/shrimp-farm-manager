@@ -1,10 +1,17 @@
 import 'dart:developer' as developer;
 
+import 'package:flutter/foundation.dart';
+
+import '../lab/voice_stt_locale_lab_flags.dart';
 import '../models/farm_activity_draft.dart';
 import 'pond_resolver.dart';
 
-/// Pilot logging. Compiled out of release via [assert]. Never stores audio.
+/// Pilot logging. Compiled out of release via [assert] unless the STT locale
+/// lab dart-define is enabled (TestFlight instrumentation). Never stores audio.
 abstract final class VoiceEntryDebugLog {
+  static bool get _labLoggingEnabled =>
+      kDebugMode || voiceSttLocaleLabEnabled();
+
   static void speechLocale({
     required String selectedLocaleId,
     required bool usedFallback,
@@ -43,6 +50,42 @@ abstract final class VoiceEntryDebugLog {
       );
       return true;
     }());
+  }
+
+  static void localeLabResult({
+    required String localeId,
+    required String phraseId,
+    required String expected,
+    required String heard,
+    required bool exactMatch,
+    required double tokenRecall,
+    required double werProxy,
+  }) {
+    if (!_labLoggingEnabled) return;
+    developer.log(
+      '[LocaleLab] phrase locale="$localeId" id=$phraseId '
+      'exact=$exactMatch recall=${tokenRecall.toStringAsFixed(2)} '
+      'wer=${werProxy.toStringAsFixed(2)} '
+      'expected="$expected" heard="$heard"',
+      name: 'voice_entry',
+    );
+  }
+
+  static void localeLabSummary({
+    required String localeId,
+    required int phraseCount,
+    required double exactRate,
+    required double meanTokenRecall,
+    required double meanWerProxy,
+  }) {
+    if (!_labLoggingEnabled) return;
+    developer.log(
+      '[LocaleLab] summary locale="$localeId" n=$phraseCount '
+      'exact=${exactRate.toStringAsFixed(2)} '
+      'tokenRecall=${meanTokenRecall.toStringAsFixed(2)} '
+      'werProxy=${meanWerProxy.toStringAsFixed(2)}',
+      name: 'voice_entry',
+    );
   }
 
   static Map<String, Object?> _fields(FarmActivityDraft draft) {

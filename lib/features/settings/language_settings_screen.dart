@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:prawn_farm_app/app/app.dart';
+import 'package:prawn_farm_app/features/voice_entry/screens/stt_locale_lab_screen.dart';
 import 'package:prawn_farm_app/features/voice_entry/services/voice_language_store.dart';
 import 'package:prawn_farm_app/features/voice_entry/services/voice_speech_locale_picker.dart';
 import 'package:prawn_farm_app/l10n/app_localizations.dart';
@@ -280,6 +281,23 @@ class _LanguageSettingsScreenState extends State<LanguageSettingsScreen> {
                         ),
                       ),
                     ),
+                    if (SttLocaleLabScreen.isVisible)
+                      ListTile(
+                        key: const Key('settings_stt_locale_lab'),
+                        leading: const Icon(Icons.science_outlined),
+                        title: const Text('STT locale lab'),
+                        subtitle: const Text(
+                          'Compare English speech locales on a fixed corpus',
+                        ),
+                        trailing: const Icon(Icons.chevron_right),
+                        onTap: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute<void>(
+                              builder: (_) => const SttLocaleLabScreen(),
+                            ),
+                          );
+                        },
+                      ),
                     ListTile(
                       leading: const Icon(Icons.fingerprint),
                       title: Text(
