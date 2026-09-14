@@ -8,6 +8,7 @@ import 'pond_list_screen.dart';
 import '../alerts/alerts_screen.dart';
 import '../mortality/mortality_log_screen.dart';
 import '../settings/language_settings_screen.dart';
+import '../voice_entry/screens/voice_farm_entry_screen.dart';
 import '../../services/firestore_service.dart';
 import '../../services/growth_analysis_service.dart';
 import '../../services/growth_reference.dart';
@@ -84,16 +85,25 @@ class _PondOverviewScreenState extends State<PondOverviewScreen> {
               child: const Icon(Icons.add),
             ),
             body: Center(
-              child: Text(
-                AppLocalizations.of(context)!.noPondsYetAddFirst,
-                textAlign: TextAlign.center,
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      AppLocalizations.of(context)!.noPondsYetAddFirst,
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 16),
+                    _voiceEntryButton(ponds),
+                  ],
+                ),
               ),
             ),
           );
         }
 
-        final selectedIndex =
-            _selectedIndex.clamp(0, ponds.length - 1);
+        final selectedIndex = _selectedIndex.clamp(0, ponds.length - 1);
         final selectedPond = ponds[selectedIndex];
 
         return Scaffold(
@@ -115,7 +125,7 @@ class _PondOverviewScreenState extends State<PondOverviewScreen> {
                     ),
                   );
                 },
-              )
+              ),
             ],
           ),
           floatingActionButton: FloatingActionButton(
@@ -129,6 +139,8 @@ class _PondOverviewScreenState extends State<PondOverviewScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 _pondSelector(ponds, selectedIndex),
+                const SizedBox(height: 12),
+                _voiceEntryButton(ponds),
                 const SizedBox(height: 12),
                 _selectedPondHeader(context, selectedPond),
                 const SizedBox(height: 16),
@@ -189,8 +201,9 @@ class _PondOverviewScreenState extends State<PondOverviewScreen> {
           decoration: BoxDecoration(
             color: selected ? Colors.white : Colors.transparent,
             borderRadius: BorderRadius.circular(8),
-            boxShadow:
-                selected ? [const BoxShadow(color: Colors.black12, blurRadius: 4)] : [],
+            boxShadow: selected
+                ? [const BoxShadow(color: Colors.black12, blurRadius: 4)]
+                : [],
           ),
           alignment: Alignment.center,
           child: Text(
@@ -222,9 +235,7 @@ class _PondOverviewScreenState extends State<PondOverviewScreen> {
         trailing: const Icon(Icons.chevron_right),
         onTap: () {
           Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (_) => PondDetailScreen(pond: pond),
-            ),
+            MaterialPageRoute(builder: (_) => PondDetailScreen(pond: pond)),
           );
         },
       ),
@@ -269,9 +280,7 @@ class _PondOverviewScreenState extends State<PondOverviewScreen> {
       decoration: BoxDecoration(
         color: primary ? const Color(0xFF005F73) : Colors.white,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: const [
-          BoxShadow(color: Colors.black12, blurRadius: 6),
-        ],
+        boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 6)],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -308,9 +317,7 @@ class _PondOverviewScreenState extends State<PondOverviewScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: const [
-          BoxShadow(color: Colors.black12, blurRadius: 6),
-        ],
+        boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 6)],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -350,14 +357,15 @@ class _PondOverviewScreenState extends State<PondOverviewScreen> {
                   stream: FirestoreService.instance.watchWaterLogs(pond.id),
                   builder: (context, waterSnapshot) {
                     final waterLogs = waterSnapshot.data ?? const <PondLog>[];
-                    final contributors =
-                        GrowthAnalysisService.instance.evaluateSlowGrowthContributors(
-                      pond: pond,
-                      feedLogs: feedLogs,
-                      waterLogs: waterLogs,
-                    );
+                    final contributors = GrowthAnalysisService.instance
+                        .evaluateSlowGrowthContributors(
+                          pond: pond,
+                          feedLogs: feedLogs,
+                          waterLogs: waterLogs,
+                        );
                     final hasLikelyCause =
-                        contributors.feedLikelyLow || contributors.waterLikelyIssue;
+                        contributors.feedLikelyLow ||
+                        contributors.waterLikelyIssue;
                     final message = hasLikelyCause
                         ? l10n.growthCombinedSuggestion
                         : '${l10n.growthSuggestionCheckFeedQty}. ${l10n.growthSuggestionCheckWaterQuality}.';
@@ -548,7 +556,8 @@ class _PondOverviewScreenState extends State<PondOverviewScreen> {
         _SummaryTile(
           icon: Icons.sync_alt,
           value: pond.fcr.toStringAsFixed(2),
-          label: '${AppLocalizations.of(context)!.fcr} ${_fcrStatusLabel(pond.fcr)}',
+          label:
+              '${AppLocalizations.of(context)!.fcr} ${_fcrStatusLabel(pond.fcr)}',
         ),
       ],
     );
@@ -576,7 +585,10 @@ class _PondOverviewScreenState extends State<PondOverviewScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              _HarvestItem(label: AppLocalizations.of(context)!.date, value: harvestDateStr),
+              _HarvestItem(
+                label: AppLocalizations.of(context)!.date,
+                value: harvestDateStr,
+              ),
               _HarvestItem(
                 label: AppLocalizations.of(context)!.biomass,
                 value: '${pond.estimatedBiomassTons.toStringAsFixed(1)} Tons',
@@ -608,29 +620,21 @@ class _PondOverviewScreenState extends State<PondOverviewScreen> {
               children: [
                 Text(
                   AppLocalizations.of(context)!.recommendedFeedToday,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w600,
-                  ),
+                  style: const TextStyle(fontWeight: FontWeight.w600),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   feedRatePercent > 0
                       ? 'Rate: ${feedRatePercent.toStringAsFixed(1)}% of biomass'
                       : 'Enter weight & survival to see recommendation',
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey,
-                  ),
+                  style: const TextStyle(fontSize: 12, color: Colors.grey),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   biomassKg > 0
                       ? 'Biomass: ${biomassTons.toStringAsFixed(2)} T'
                       : 'Biomass not available',
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey,
-                  ),
+                  style: const TextStyle(fontSize: 12, color: Colors.grey),
                 ),
               ],
             ),
@@ -686,9 +690,7 @@ class _PondOverviewScreenState extends State<PondOverviewScreen> {
     return Align(
       alignment: Alignment.centerRight,
       child: TextButton.icon(
-        style: TextButton.styleFrom(
-          foregroundColor: Colors.red.shade700,
-        ),
+        style: TextButton.styleFrom(foregroundColor: Colors.red.shade700),
         onPressed: () {
           Navigator.of(context).push(
             MaterialPageRoute(
@@ -707,19 +709,39 @@ class _PondOverviewScreenState extends State<PondOverviewScreen> {
       await FirestoreService.instance.upsertPond(pond);
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Could not save pond: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Could not save pond: $e')));
     }
+  }
+
+  Widget _voiceEntryButton(List<Pond> ponds) {
+    return SizedBox(
+      width: double.infinity,
+      child: FilledButton.icon(
+        key: const Key('voice_record_farm_activity'),
+        style: FilledButton.styleFrom(
+          backgroundColor: const Color(0xFF005F73),
+          padding: const EdgeInsets.symmetric(vertical: 14),
+        ),
+        onPressed: () {
+          Navigator.of(context).push(
+            MaterialPageRoute<void>(
+              builder: (_) => VoiceFarmEntryScreen(ponds: ponds),
+            ),
+          );
+        },
+        icon: const Icon(Icons.mic),
+        label: Text(AppLocalizations.of(context)!.voiceRecordFarmActivity),
+      ),
+    );
   }
 
   void _openAddPond() {
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => PondFormScreen(
-          mode: PondFormMode.create,
-          onSave: _savePond,
-        ),
+        builder: (_) =>
+            PondFormScreen(mode: PondFormMode.create, onSave: _savePond),
       ),
     );
   }
@@ -766,9 +788,7 @@ class _SummaryTile extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: const [
-          BoxShadow(color: Colors.black12, blurRadius: 4),
-        ],
+        boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 4)],
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,

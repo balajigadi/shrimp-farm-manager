@@ -9,6 +9,7 @@
         android:maxSdkVersion="32" />
     <!-- Needed so scheduled notifications can survive reboot/update -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
 
     <application
         android:label="prawn_farm_app"
@@ -81,6 +82,10 @@
         <intent>
             <action android:name="android.intent.action.DIAL" />
             <data android:scheme="tel" />
+        </intent>
+        <!-- speech_to_text: on-device / system speech recognizer (Android 11+) -->
+        <intent>
+            <action android:name="android.speech.RecognitionService" />
         </intent>
     </queries>
 </manifest>

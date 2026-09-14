@@ -30,14 +30,39 @@ Pond _pond({
 
 void main() {
   group('GrowthReference', () {
-    test('closest DOC and status bands', () {
+    test('closest DOC snaps to table keys', () {
       expect(GrowthReference.getClosestDoc(48), 50);
-      final slow = GrowthReference.evaluateGrowthStatus(50, 5);
-      expect(slow.status, GrowthStatus.slow);
-      final good = GrowthReference.evaluateGrowthStatus(50, 11);
-      expect(good.status, GrowthStatus.good);
-      final excellent = GrowthReference.evaluateGrowthStatus(50, 20);
-      expect(excellent.status, GrowthStatus.excellent);
+      expect(GrowthReference.getClosestDoc(0), 10);
+      expect(GrowthReference.getClosestDoc(-5), 10);
+    });
+
+    test('DOC 50 expected range is 10–12 g', () {
+      final range = GrowthReference.getExpectedRange(50);
+      expect(range.expectedMin, 10);
+      expect(range.expectedMax, 12);
+    });
+
+    test('status bands at DOC 50', () {
+      expect(
+        GrowthReference.evaluateGrowthStatus(50, 5).status,
+        GrowthStatus.slow,
+      );
+      expect(
+        GrowthReference.evaluateGrowthStatus(50, 10).status,
+        GrowthStatus.good,
+      );
+      expect(
+        GrowthReference.evaluateGrowthStatus(50, 11).status,
+        GrowthStatus.good,
+      );
+      expect(
+        GrowthReference.evaluateGrowthStatus(50, 12).status,
+        GrowthStatus.good,
+      );
+      expect(
+        GrowthReference.evaluateGrowthStatus(50, 20).status,
+        GrowthStatus.excellent,
+      );
     });
 
     test('parseStatus defaults unknown to good', () {
@@ -67,11 +92,19 @@ void main() {
       );
     });
 
+    test('same calendar day as stocking is DOC 0', () {
+      final day = DateTime(2026, 7, 1, 18);
+      expect(
+        service.daysOfCulture(stockingDate: DateTime(2026, 7, 1, 6), asOf: day),
+        0,
+      );
+    });
+
     test('pondSummaryUpdate maps analysis fields', () {
       final analysis = service.analyze(
         stockingDate: DateTime(2026, 5, 21),
         actualAbw: 11,
-        asOf: DateTime(2026, 7, 10), // DOC ~50
+        asOf: DateTime(2026, 7, 10),
       );
       final update = service.pondSummaryUpdate(
         analysis: analysis,
@@ -84,7 +117,6 @@ void main() {
 
     test('flags low feed and bad water as slow-growth contributors', () {
       final pond = _pond(abw: 10, survival: 90, stockingCount: 100000);
-      // Recommended daily feed is biomass-based; keep feed logs tiny.
       final feedLogs = [
         FeedLog(
           id: '1',

@@ -1280,6 +1280,36 @@ abstract class AppLocalizations {
   /// **'Telugu'**
   String get settingsLanguageTelugu;
 
+  /// No description provided for @settingsVoiceLanguage.
+  ///
+  /// In en, this message translates to:
+  /// **'Voice language'**
+  String get settingsVoiceLanguage;
+
+  /// No description provided for @settingsVoiceLanguageAutoMixed.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto / Mixed'**
+  String get settingsVoiceLanguageAutoMixed;
+
+  /// No description provided for @settingsVoiceLanguageTelugu.
+  ///
+  /// In en, this message translates to:
+  /// **'తెలుగు'**
+  String get settingsVoiceLanguageTelugu;
+
+  /// No description provided for @settingsVoiceLanguageEnglish.
+  ///
+  /// In en, this message translates to:
+  /// **'English'**
+  String get settingsVoiceLanguageEnglish;
+
+  /// No description provided for @settingsVoiceLanguageHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Used for farm voice entry. Auto / Mixed prefers Telugu speech when the device has it, so Telugu-English mixed speech can be recognized.'**
+  String get settingsVoiceLanguageHint;
+
   /// No description provided for @settingsResetPassword.
   ///
   /// In en, this message translates to:
@@ -2149,6 +2179,174 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Dismiss'**
   String get dismiss;
+
+  /// No description provided for @voiceRecordFarmActivity.
+  ///
+  /// In en, this message translates to:
+  /// **'Record Farm Activity'**
+  String get voiceRecordFarmActivity;
+
+  /// No description provided for @voiceTapToSpeak.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap to speak'**
+  String get voiceTapToSpeak;
+
+  /// No description provided for @voiceListening.
+  ///
+  /// In en, this message translates to:
+  /// **'Listening...'**
+  String get voiceListening;
+
+  /// No description provided for @voiceStop.
+  ///
+  /// In en, this message translates to:
+  /// **'Stop'**
+  String get voiceStop;
+
+  /// No description provided for @voiceIHeard.
+  ///
+  /// In en, this message translates to:
+  /// **'I heard'**
+  String get voiceIHeard;
+
+  /// No description provided for @voiceActivityLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Activity'**
+  String get voiceActivityLabel;
+
+  /// No description provided for @voiceActivityFeed.
+  ///
+  /// In en, this message translates to:
+  /// **'Feed'**
+  String get voiceActivityFeed;
+
+  /// No description provided for @voiceActivityWater.
+  ///
+  /// In en, this message translates to:
+  /// **'Water quality'**
+  String get voiceActivityWater;
+
+  /// No description provided for @voiceActivityGrowth.
+  ///
+  /// In en, this message translates to:
+  /// **'Growth sample'**
+  String get voiceActivityGrowth;
+
+  /// No description provided for @voiceActivityMortality.
+  ///
+  /// In en, this message translates to:
+  /// **'Mortality'**
+  String get voiceActivityMortality;
+
+  /// No description provided for @voiceActivityUnknown.
+  ///
+  /// In en, this message translates to:
+  /// **'Unknown'**
+  String get voiceActivityUnknown;
+
+  /// No description provided for @voiceConfirmAndSave.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm & Save'**
+  String get voiceConfirmAndSave;
+
+  /// No description provided for @voiceTryAgain.
+  ///
+  /// In en, this message translates to:
+  /// **'Try again'**
+  String get voiceTryAgain;
+
+  /// No description provided for @voiceCancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get voiceCancel;
+
+  /// No description provided for @voiceDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Done'**
+  String get voiceDone;
+
+  /// No description provided for @voiceSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved. This activity is now in your farm records.'**
+  String get voiceSaved;
+
+  /// No description provided for @voiceSaveFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not save. Check the values and try Confirm again.'**
+  String get voiceSaveFailed;
+
+  /// No description provided for @voiceMicDenied.
+  ///
+  /// In en, this message translates to:
+  /// **'Microphone permission is required to record farm activity by voice.'**
+  String get voiceMicDenied;
+
+  /// No description provided for @voiceSpeechUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Speech recognition is not available on this device.'**
+  String get voiceSpeechUnavailable;
+
+  /// No description provided for @voiceEmptyTranscript.
+  ///
+  /// In en, this message translates to:
+  /// **'I did not catch that. Tap the microphone and try again.'**
+  String get voiceEmptyTranscript;
+
+  /// No description provided for @voiceMissingField.
+  ///
+  /// In en, this message translates to:
+  /// **'Missing — enter or select this value'**
+  String get voiceMissingField;
+
+  /// No description provided for @voiceSelectPond.
+  ///
+  /// In en, this message translates to:
+  /// **'Select pond'**
+  String get voiceSelectPond;
+
+  /// No description provided for @voiceUnknownActivity.
+  ///
+  /// In en, this message translates to:
+  /// **'I could not tell which activity that was. Try again or use manual entry.'**
+  String get voiceUnknownActivity;
+
+  /// No description provided for @voicePleaseConfirmPond.
+  ///
+  /// In en, this message translates to:
+  /// **'I heard {heard}. Please confirm the pond.'**
+  String voicePleaseConfirmPond(String heard);
+
+  /// No description provided for @voiceExamplesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Examples'**
+  String get voiceExamplesTitle;
+
+  /// No description provided for @voiceExampleFeed.
+  ///
+  /// In en, this message translates to:
+  /// **'Feed Pond 2 45 kg tray empty'**
+  String get voiceExampleFeed;
+
+  /// No description provided for @voiceExampleWater.
+  ///
+  /// In en, this message translates to:
+  /// **'DO 5.2 pH 8.1 Pond 3'**
+  String get voiceExampleWater;
+
+  /// No description provided for @voiceTeluguSpeechUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Telugu speech is not installed on this device. Using English (India) instead. You can still speak mixed Telugu-English, or install Telugu in Android speech settings.'**
+  String get voiceTeluguSpeechUnavailable;
 }
 
 class _AppLocalizationsDelegate

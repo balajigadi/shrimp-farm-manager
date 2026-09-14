@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:prawn_farm_app/app/app.dart';
+import 'package:prawn_farm_app/features/voice_entry/services/voice_language_store.dart';
+import 'package:prawn_farm_app/features/voice_entry/services/voice_speech_locale_picker.dart';
 import 'package:prawn_farm_app/l10n/app_localizations.dart';
 import 'package:prawn_farm_app/services/notification_service.dart';
 import 'package:prawn_farm_app/services/user_profile_service.dart';
@@ -12,9 +14,7 @@ class LanguageSettingsScreen extends StatefulWidget {
 
   static void open(BuildContext context) {
     Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (_) => const LanguageSettingsScreen(),
-      ),
+      MaterialPageRoute<void>(builder: (_) => const LanguageSettingsScreen()),
     );
   }
 
@@ -33,11 +33,28 @@ class _LanguageSettingsScreenState extends State<LanguageSettingsScreen> {
   TimeOfDay? _expenseAlertTime;
   bool _applyingAlerts = false;
   bool _loadingAlertSettings = true;
+  VoiceLanguagePreference _voiceLanguage = VoiceLanguagePreference.autoMixed;
+  final _voiceLanguageStore = const VoiceLanguageStore();
 
   @override
   void initState() {
     super.initState();
     _initForProfile();
+    _loadVoiceLanguage();
+  }
+
+  Future<void> _loadVoiceLanguage() async {
+    final preference = await _voiceLanguageStore.load();
+    if (!mounted) return;
+    setState(() => _voiceLanguage = preference);
+  }
+
+  Future<void> _setVoiceLanguage(VoiceLanguagePreference? value) async {
+    if (value == null) return;
+    setState(() => _voiceLanguage = value);
+    try {
+      await _voiceLanguageStore.save(value);
+    } catch (_) {}
   }
 
   Future<void> _initForProfile() async {
@@ -57,16 +74,21 @@ class _LanguageSettingsScreenState extends State<LanguageSettingsScreen> {
       setState(() {
         _dailyRemindersEnabled = saved.enabled;
         _waterAlertTime = saved.waterTime;
-        _feedAlertTime1 =
-            saved.feedTimes.isNotEmpty ? saved.feedTimes[0] : _feedAlertTime1;
-        _feedAlertTime2 =
-            saved.feedTimes.length > 1 ? saved.feedTimes[1] : _feedAlertTime2;
-        _feedAlertTime3 =
-            saved.feedTimes.length > 2 ? saved.feedTimes[2] : _feedAlertTime3;
-        _feedAlertTime4 =
-            saved.feedTimes.length > 3 ? saved.feedTimes[3] : _feedAlertTime4;
-        _feedAlertTime5 =
-            saved.feedTimes.length > 4 ? saved.feedTimes[4] : _feedAlertTime5;
+        _feedAlertTime1 = saved.feedTimes.isNotEmpty
+            ? saved.feedTimes[0]
+            : _feedAlertTime1;
+        _feedAlertTime2 = saved.feedTimes.length > 1
+            ? saved.feedTimes[1]
+            : _feedAlertTime2;
+        _feedAlertTime3 = saved.feedTimes.length > 2
+            ? saved.feedTimes[2]
+            : _feedAlertTime3;
+        _feedAlertTime4 = saved.feedTimes.length > 3
+            ? saved.feedTimes[3]
+            : _feedAlertTime4;
+        _feedAlertTime5 = saved.feedTimes.length > 4
+            ? saved.feedTimes[4]
+            : _feedAlertTime5;
         _expenseAlertTime = saved.expenseTime;
       });
     }
@@ -84,10 +106,7 @@ class _LanguageSettingsScreenState extends State<LanguageSettingsScreen> {
     required TimeOfDay initial,
     required void Function(TimeOfDay picked) onPicked,
   }) async {
-    final picked = await showTimePicker(
-      context: context,
-      initialTime: initial,
-    );
+    final picked = await showTimePicker(context: context, initialTime: initial);
     if (picked == null) return;
     setState(() => onPicked(picked));
   }
@@ -109,12 +128,18 @@ class _LanguageSettingsScreenState extends State<LanguageSettingsScreen> {
       );
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(AppLocalizations.of(context)!.alertSettingsUpdated)),
+        SnackBar(
+          content: Text(AppLocalizations.of(context)!.alertSettingsUpdated),
+        ),
       );
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('${AppLocalizations.of(context)!.couldNotUpdateAlerts}: $e')),
+        SnackBar(
+          content: Text(
+            '${AppLocalizations.of(context)!.couldNotUpdateAlerts}: $e',
+          ),
+        ),
       );
     } finally {
       if (mounted) setState(() => _applyingAlerts = false);
@@ -125,14 +150,20 @@ class _LanguageSettingsScreenState extends State<LanguageSettingsScreen> {
     final email = FirebaseAuth.instance.currentUser?.email;
     if (email == null || email.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(AppLocalizations.of(context)!.currentAccountNoEmail)),
+        SnackBar(
+          content: Text(AppLocalizations.of(context)!.currentAccountNoEmail),
+        ),
       );
       return;
     }
     await FirebaseAuth.instance.sendPasswordResetEmail(email: email);
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(AppLocalizations.of(context)!.passwordResetEmailSent(email))),
+      SnackBar(
+        content: Text(
+          AppLocalizations.of(context)!.passwordResetEmailSent(email),
+        ),
+      ),
     );
   }
 
@@ -154,26 +185,30 @@ class _LanguageSettingsScreenState extends State<LanguageSettingsScreen> {
         final showsFarmAlerts = profile?.showsFarmTabs ?? true;
 
         return Scaffold(
-          appBar: AppBar(
-            title: Text(l10n.settingsTitle),
-            centerTitle: true,
-          ),
+          appBar: AppBar(title: Text(l10n.settingsTitle), centerTitle: true),
           body: ListView(
             padding: const EdgeInsets.all(12),
             children: [
               Padding(
                 padding: EdgeInsets.symmetric(horizontal: 4, vertical: 6),
-                child: Text(l10n.settingsAccountSection, style: sectionTitleStyle),
+                child: Text(
+                  l10n.settingsAccountSection,
+                  style: sectionTitleStyle,
+                ),
               ),
               Card(
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
                 child: Column(
                   children: [
                     ListTile(
                       leading: const Icon(Icons.language),
                       title: Text(l10n.settingsLanguage),
                       subtitle: Text(
-                        (currentLocale ?? Localizations.localeOf(context)).languageCode == 'te'
+                        (currentLocale ?? Localizations.localeOf(context))
+                                    .languageCode ==
+                                'te'
                             ? 'తెలుగు'
                             : 'English',
                       ),
@@ -188,7 +223,8 @@ class _LanguageSettingsScreenState extends State<LanguageSettingsScreen> {
                               title: Text(l10n.settingsLanguageEnglish),
                               value: const Locale('en'),
                               groupValue:
-                                  currentLocale ?? Localizations.localeOf(context),
+                                  currentLocale ??
+                                  Localizations.localeOf(context),
                               onChanged: (value) => scope.setLocale(value),
                             ),
                           ),
@@ -198,11 +234,50 @@ class _LanguageSettingsScreenState extends State<LanguageSettingsScreen> {
                               title: Text(l10n.settingsLanguageTelugu),
                               value: const Locale('te'),
                               groupValue:
-                                  currentLocale ?? Localizations.localeOf(context),
+                                  currentLocale ??
+                                  Localizations.localeOf(context),
                               onChanged: (value) => scope.setLocale(value),
                             ),
                           ),
                         ],
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+                      child: Text(
+                        l10n.settingsVoiceLanguage,
+                        style: const TextStyle(fontWeight: FontWeight.w600),
+                      ),
+                    ),
+                    RadioListTile<VoiceLanguagePreference>(
+                      dense: true,
+                      title: Text(l10n.settingsVoiceLanguageAutoMixed),
+                      value: VoiceLanguagePreference.autoMixed,
+                      groupValue: _voiceLanguage,
+                      onChanged: _setVoiceLanguage,
+                    ),
+                    RadioListTile<VoiceLanguagePreference>(
+                      dense: true,
+                      title: Text(l10n.settingsVoiceLanguageTelugu),
+                      value: VoiceLanguagePreference.telugu,
+                      groupValue: _voiceLanguage,
+                      onChanged: _setVoiceLanguage,
+                    ),
+                    RadioListTile<VoiceLanguagePreference>(
+                      dense: true,
+                      title: Text(l10n.settingsVoiceLanguageEnglish),
+                      value: VoiceLanguagePreference.english,
+                      groupValue: _voiceLanguage,
+                      onChanged: _setVoiceLanguage,
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                      child: Text(
+                        l10n.settingsVoiceLanguageHint,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey,
+                        ),
                       ),
                     ),
                     ListTile(
@@ -223,7 +298,9 @@ class _LanguageSettingsScreenState extends State<LanguageSettingsScreen> {
                         await Clipboard.setData(ClipboardData(text: uid));
                         if (!context.mounted) return;
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('UID copied to clipboard')),
+                          const SnackBar(
+                            content: Text('UID copied to clipboard'),
+                          ),
                         );
                       },
                     ),
@@ -242,10 +319,15 @@ class _LanguageSettingsScreenState extends State<LanguageSettingsScreen> {
                 const SizedBox(height: 12),
                 Padding(
                   padding: EdgeInsets.symmetric(horizontal: 4, vertical: 6),
-                  child: Text(l10n.settingsNotificationsSection, style: sectionTitleStyle),
+                  child: Text(
+                    l10n.settingsNotificationsSection,
+                    style: sectionTitleStyle,
+                  ),
                 ),
                 Card(
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                   child: Padding(
                     padding: const EdgeInsets.all(12),
                     child: Column(
@@ -260,7 +342,8 @@ class _LanguageSettingsScreenState extends State<LanguageSettingsScreen> {
                           contentPadding: EdgeInsets.zero,
                           title: Text(l10n.settingsDailyReminders),
                           value: _dailyRemindersEnabled,
-                          onChanged: (v) => setState(() => _dailyRemindersEnabled = v),
+                          onChanged: (v) =>
+                              setState(() => _dailyRemindersEnabled = v),
                         ),
                         const SizedBox(height: 8),
                         Text(l10n.settingsCheckWaterQuality),
@@ -345,22 +428,29 @@ class _LanguageSettingsScreenState extends State<LanguageSettingsScreen> {
                               ? l10n.settingsNotSet
                               : _formatTime(_expenseAlertTime!),
                           onTap: () => _pickTime(
-                            initial: _expenseAlertTime ?? const TimeOfDay(hour: 20, minute: 0),
+                            initial:
+                                _expenseAlertTime ??
+                                const TimeOfDay(hour: 20, minute: 0),
                             onPicked: (t) => _expenseAlertTime = t,
                           ),
                           trailing: _expenseAlertTime == null
                               ? null
                               : IconButton(
                                   icon: const Icon(Icons.close, size: 18),
-                                  onPressed: () => setState(() => _expenseAlertTime = null),
+                                  onPressed: () =>
+                                      setState(() => _expenseAlertTime = null),
                                 ),
                         ),
                         const SizedBox(height: 12),
                         SizedBox(
                           width: double.infinity,
                           child: ElevatedButton.icon(
-                            onPressed: _applyingAlerts ? null : _applyAlertSettings,
-                            icon: const Icon(Icons.notifications_active_outlined),
+                            onPressed: _applyingAlerts
+                                ? null
+                                : _applyAlertSettings,
+                            icon: const Icon(
+                              Icons.notifications_active_outlined,
+                            ),
                             label: Text(
                               _applyingAlerts
                                   ? l10n.settingsApplying
@@ -371,14 +461,21 @@ class _LanguageSettingsScreenState extends State<LanguageSettingsScreen> {
                         const SizedBox(height: 8),
                         ListTile(
                           contentPadding: EdgeInsets.zero,
-                          leading: const Icon(Icons.notifications_active_outlined),
+                          leading: const Icon(
+                            Icons.notifications_active_outlined,
+                          ),
                           title: Text(l10n.settingsTestAlerts),
                           subtitle: Text(l10n.settingsSendTestNotificationNow),
                           onTap: () async {
-                            await NotificationService.instance.showTestNotificationNow();
+                            await NotificationService.instance
+                                .showTestNotificationNow();
                             if (!context.mounted) return;
                             ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text(l10n.settingsTestNotificationSent)),
+                              SnackBar(
+                                content: Text(
+                                  l10n.settingsTestNotificationSent,
+                                ),
+                              ),
                             );
                           },
                         ),
@@ -386,13 +483,19 @@ class _LanguageSettingsScreenState extends State<LanguageSettingsScreen> {
                           contentPadding: EdgeInsets.zero,
                           leading: const Icon(Icons.schedule),
                           title: Text(l10n.settingsTestAlertIn10Sec),
-                          subtitle: Text(l10n.settingsScheduleNotificationIn10Seconds),
+                          subtitle: Text(
+                            l10n.settingsScheduleNotificationIn10Seconds,
+                          ),
                           onTap: () async {
                             await NotificationService.instance
                                 .scheduleTestNotification(seconds: 10);
                             if (!context.mounted) return;
                             ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text(l10n.settingsNotificationIn10Seconds)),
+                              SnackBar(
+                                content: Text(
+                                  l10n.settingsNotificationIn10Seconds,
+                                ),
+                              ),
                             );
                           },
                         ),
@@ -408,7 +511,9 @@ class _LanguageSettingsScreenState extends State<LanguageSettingsScreen> {
                 child: Text(l10n.settingsAppSection, style: sectionTitleStyle),
               ),
               Card(
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
                 child: Column(
                   children: [
                     ListTile(
@@ -440,8 +545,10 @@ class _LanguageSettingsScreenState extends State<LanguageSettingsScreen> {
                   await NotificationService.instance.clearFarmAlerts();
                   await FirebaseAuth.instance.signOut();
                   if (!context.mounted) return;
-                  Navigator.of(context, rootNavigator: true)
-                      .popUntil((route) => route.isFirst);
+                  Navigator.of(
+                    context,
+                    rootNavigator: true,
+                  ).popUntil((route) => route.isFirst);
                 },
                 icon: const Icon(Icons.logout),
                 label: Text(l10n.settingsLogOut),
@@ -479,7 +586,10 @@ class _LanguageSettingsScreenState extends State<LanguageSettingsScreen> {
                     style: const TextStyle(fontSize: 12, color: Colors.grey),
                   ),
                   const SizedBox(height: 2),
-                  Text(value, style: const TextStyle(fontWeight: FontWeight.w600)),
+                  Text(
+                    value,
+                    style: const TextStyle(fontWeight: FontWeight.w600),
+                  ),
                 ],
               ),
             ),
@@ -490,4 +600,3 @@ class _LanguageSettingsScreenState extends State<LanguageSettingsScreen> {
     );
   }
 }
-

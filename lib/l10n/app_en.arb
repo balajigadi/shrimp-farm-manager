@@ -248,6 +248,11 @@
   "settingsLanguage": "Language",
   "settingsLanguageEnglish": "English",
   "settingsLanguageTelugu": "Telugu",
+  "settingsVoiceLanguage": "Voice language",
+  "settingsVoiceLanguageAutoMixed": "Auto / Mixed",
+  "settingsVoiceLanguageTelugu": "తెలుగు",
+  "settingsVoiceLanguageEnglish": "English",
+  "settingsVoiceLanguageHint": "Used for farm voice entry. Auto / Mixed prefers Telugu speech when the device has it, so Telugu-English mixed speech can be recognized.",
   "settingsResetPassword": "Reset Password",
   "settingsNotificationsSection": "Notifications",
   "settingsDailyReminders": "Daily Reminders",
@@ -412,5 +417,41 @@
   "setUpYourFarm": "Set up your farm",
   "setUpYourFarmDesc": "Add your first pond to track water, feed, and growth.",
   "marketDay7Nudge": "You can also manage your ponds — add a pond anytime.",
-  "dismiss": "Dismiss"
+  "dismiss": "Dismiss",
+
+  "voiceRecordFarmActivity": "Record Farm Activity",
+  "voiceTapToSpeak": "Tap to speak",
+  "voiceListening": "Listening...",
+  "voiceStop": "Stop",
+  "voiceIHeard": "I heard",
+  "voiceActivityLabel": "Activity",
+  "voiceActivityFeed": "Feed",
+  "voiceActivityWater": "Water quality",
+  "voiceActivityGrowth": "Growth sample",
+  "voiceActivityMortality": "Mortality",
+  "voiceActivityUnknown": "Unknown",
+  "voiceConfirmAndSave": "Confirm & Save",
+  "voiceTryAgain": "Try again",
+  "voiceCancel": "Cancel",
+  "voiceDone": "Done",
+  "voiceSaved": "Saved. This activity is now in your farm records.",
+  "voiceSaveFailed": "Could not save. Check the values and try Confirm again.",
+  "voiceMicDenied": "Microphone permission is required to record farm activity by voice.",
+  "voiceSpeechUnavailable": "Speech recognition is not available on this device.",
+  "voiceEmptyTranscript": "I did not catch that. Tap the microphone and try again.",
+  "voiceMissingField": "Missing — enter or select this value",
+  "voiceSelectPond": "Select pond",
+  "voiceUnknownActivity": "I could not tell which activity that was. Try again or use manual entry.",
+  "voicePleaseConfirmPond": "I heard {heard}. Please confirm the pond.",
+  "@voicePleaseConfirmPond": {
+    "placeholders": {
+      "heard": {
+        "type": "String"
+      }
+    }
+  },
+  "voiceExamplesTitle": "Examples",
+  "voiceExampleFeed": "Feed Pond 2 45 kg tray empty",
+  "voiceExampleWater": "DO 5.2 pH 8.1 Pond 3",
+  "voiceTeluguSpeechUnavailable": "Telugu speech is not installed on this device. Using English (India) instead. You can still speak mixed Telugu-English, or install Telugu in Android speech settings."
 }

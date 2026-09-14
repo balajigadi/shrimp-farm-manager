@@ -622,6 +622,22 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsLanguageTelugu => 'Telugu';
 
   @override
+  String get settingsVoiceLanguage => 'Voice language';
+
+  @override
+  String get settingsVoiceLanguageAutoMixed => 'Auto / Mixed';
+
+  @override
+  String get settingsVoiceLanguageTelugu => 'తెలుగు';
+
+  @override
+  String get settingsVoiceLanguageEnglish => 'English';
+
+  @override
+  String get settingsVoiceLanguageHint =>
+      'Used for farm voice entry. Auto / Mixed prefers Telugu speech when the device has it, so Telugu-English mixed speech can be recognized.';
+
+  @override
   String get settingsResetPassword => 'Reset Password';
 
   @override
@@ -1074,4 +1090,96 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get dismiss => 'Dismiss';
+
+  @override
+  String get voiceRecordFarmActivity => 'Record Farm Activity';
+
+  @override
+  String get voiceTapToSpeak => 'Tap to speak';
+
+  @override
+  String get voiceListening => 'Listening...';
+
+  @override
+  String get voiceStop => 'Stop';
+
+  @override
+  String get voiceIHeard => 'I heard';
+
+  @override
+  String get voiceActivityLabel => 'Activity';
+
+  @override
+  String get voiceActivityFeed => 'Feed';
+
+  @override
+  String get voiceActivityWater => 'Water quality';
+
+  @override
+  String get voiceActivityGrowth => 'Growth sample';
+
+  @override
+  String get voiceActivityMortality => 'Mortality';
+
+  @override
+  String get voiceActivityUnknown => 'Unknown';
+
+  @override
+  String get voiceConfirmAndSave => 'Confirm & Save';
+
+  @override
+  String get voiceTryAgain => 'Try again';
+
+  @override
+  String get voiceCancel => 'Cancel';
+
+  @override
+  String get voiceDone => 'Done';
+
+  @override
+  String get voiceSaved => 'Saved. This activity is now in your farm records.';
+
+  @override
+  String get voiceSaveFailed =>
+      'Could not save. Check the values and try Confirm again.';
+
+  @override
+  String get voiceMicDenied =>
+      'Microphone permission is required to record farm activity by voice.';
+
+  @override
+  String get voiceSpeechUnavailable =>
+      'Speech recognition is not available on this device.';
+
+  @override
+  String get voiceEmptyTranscript =>
+      'I did not catch that. Tap the microphone and try again.';
+
+  @override
+  String get voiceMissingField => 'Missing — enter or select this value';
+
+  @override
+  String get voiceSelectPond => 'Select pond';
+
+  @override
+  String get voiceUnknownActivity =>
+      'I could not tell which activity that was. Try again or use manual entry.';
+
+  @override
+  String voicePleaseConfirmPond(String heard) {
+    return 'I heard $heard. Please confirm the pond.';
+  }
+
+  @override
+  String get voiceExamplesTitle => 'Examples';
+
+  @override
+  String get voiceExampleFeed => 'Feed Pond 2 45 kg tray empty';
+
+  @override
+  String get voiceExampleWater => 'DO 5.2 pH 8.1 Pond 3';
+
+  @override
+  String get voiceTeluguSpeechUnavailable =>
+      'Telugu speech is not installed on this device. Using English (India) instead. You can still speak mixed Telugu-English, or install Telugu in Android speech settings.';
 }

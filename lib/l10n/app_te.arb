@@ -241,6 +241,11 @@
   "settingsLanguage": "భాష",
   "settingsLanguageEnglish": "ఇంగ్లీష్",
   "settingsLanguageTelugu": "తెలుగు",
+  "settingsVoiceLanguage": "వాయిస్ భాష",
+  "settingsVoiceLanguageAutoMixed": "ఆటో / మిక్స్‌డ్",
+  "settingsVoiceLanguageTelugu": "తెలుగు",
+  "settingsVoiceLanguageEnglish": "ఇంగ్లీష్",
+  "settingsVoiceLanguageHint": "ఫార్మ్ వాయిస్ ఎంట్రీ కోసం. డివైస్‌లో తెలుగు స్పీచ్ ఉంటే ఆటో / మిక్స్‌డ్ దాన్ని ఎంచుకుంటుంది.",
   "settingsResetPassword": "పాస్‌వర్డ్ రీసెట్",
   "settingsNotificationsSection": "నోటిఫికేషన్లు",
   "settingsDailyReminders": "రోజువారీ రిమైండర్లు",
@@ -405,5 +410,41 @@
   "setUpYourFarm": "మీ ఫారం సెటప్ చేయండి",
   "setUpYourFarmDesc": "నీరు, ఆహారం, పెరుగుదల ట్రాక్ చేయడానికి మొదటి చెరువు జోడించండి.",
   "marketDay7Nudge": "మీరు చెరువులను కూడా నిర్వహించవచ్చు — ఎప్పుడైనా చెరువు జోడించండి.",
-  "dismiss": "తీసివేయి"
+  "dismiss": "తీసివేయి",
+
+  "voiceRecordFarmActivity": "ఫారం కార్యకలాపం రికార్డ్ చేయండి",
+  "voiceTapToSpeak": "మాట్లాడటానికి నొక్కండి",
+  "voiceListening": "వినిపిస్తోంది...",
+  "voiceStop": "ఆపు",
+  "voiceIHeard": "నేను విన్నది",
+  "voiceActivityLabel": "కార్యకలాపం",
+  "voiceActivityFeed": "మేత",
+  "voiceActivityWater": "నీటి నాణ్యత",
+  "voiceActivityGrowth": "పెరుగుదల నమూనా",
+  "voiceActivityMortality": "మరణాలు",
+  "voiceActivityUnknown": "తెలియదు",
+  "voiceConfirmAndSave": "నిర్ధారించి సేవ్ చేయండి",
+  "voiceTryAgain": "మళ్లీ ప్రయత్నించండి",
+  "voiceCancel": "రద్దు",
+  "voiceDone": "పూర్తి",
+  "voiceSaved": "సేవ్ అయింది. ఈ కార్యకలాపం ఇప్పుడు మీ ఫారం రికార్డుల్లో ఉంది.",
+  "voiceSaveFailed": "సేవ్ చేయలేకపోయాం. విలువలు చూసి మళ్లీ నిర్ధారించండి.",
+  "voiceMicDenied": "వాయిస్‌తో ఫారం కార్యకలాపం రికార్డ్ చేయడానికి మైక్రోఫోన్ అనుమతి అవసరం.",
+  "voiceSpeechUnavailable": "ఈ పరికరంలో స్పీచ్ రికగ్నిషన్ అందుబాటులో లేదు.",
+  "voiceEmptyTranscript": "అర్థం కాలేదు. మైక్రోఫోన్ నొక్కి మళ్లీ ప్రయత్నించండి.",
+  "voiceMissingField": "లేదు — ఈ విలువను నమోదు చేయండి లేదా ఎంచుకోండి",
+  "voiceSelectPond": "చెరువు ఎంచుకోండి",
+  "voiceUnknownActivity": "ఏ కార్యకలాపమో అర్థం కాలేదు. మళ్లీ ప్రయత్నించండి లేదా మాన్యువల్ ఎంట్రీ ఉపయోగించండి.",
+  "voicePleaseConfirmPond": "నేను {heard} విన్నాను. చెరువును నిర్ధారించండి.",
+  "@voicePleaseConfirmPond": {
+    "placeholders": {
+      "heard": {
+        "type": "String"
+      }
+    }
+  },
+  "voiceExamplesTitle": "ఉదాహరణలు",
+  "voiceExampleFeed": "Feed Pond 2 45 kg tray empty",
+  "voiceExampleWater": "DO 5.2 pH 8.1 Pond 3",
+  "voiceTeluguSpeechUnavailable": "ఈ డివైస్‌లో తెలుగు స్పీచ్ లేదు. ఇంగ్లీష్ (ఇండియా) వాడబడుతోంది. మిక్స్‌డ్ తెలుగు-ఇంగ్లీష్ ఇంకా మాట్లాడవచ్చు, లేదా Android స్పీచ్ సెట్టింగుల్లో తెలుగు ఇన్‌స్టాల్ చేయండి."
 }

@@ -47,6 +47,10 @@
 	<true/>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Microphone access lets you record farm activities by voice.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>Speech recognition converts what you say into farm records you can review before saving.</string>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>fetch</string>

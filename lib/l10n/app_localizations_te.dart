@@ -626,6 +626,22 @@ class AppLocalizationsTe extends AppLocalizations {
   String get settingsLanguageTelugu => 'తెలుగు';
 
   @override
+  String get settingsVoiceLanguage => 'వాయిస్ భాష';
+
+  @override
+  String get settingsVoiceLanguageAutoMixed => 'ఆటో / మిక్స్‌డ్';
+
+  @override
+  String get settingsVoiceLanguageTelugu => 'తెలుగు';
+
+  @override
+  String get settingsVoiceLanguageEnglish => 'ఇంగ్లీష్';
+
+  @override
+  String get settingsVoiceLanguageHint =>
+      'ఫార్మ్ వాయిస్ ఎంట్రీ కోసం. డివైస్‌లో తెలుగు స్పీచ్ ఉంటే ఆటో / మిక్స్‌డ్ దాన్ని ఎంచుకుంటుంది.';
+
+  @override
   String get settingsResetPassword => 'పాస్‌వర్డ్ రీసెట్';
 
   @override
@@ -1084,4 +1100,98 @@ class AppLocalizationsTe extends AppLocalizations {
 
   @override
   String get dismiss => 'తీసివేయి';
+
+  @override
+  String get voiceRecordFarmActivity => 'ఫారం కార్యకలాపం రికార్డ్ చేయండి';
+
+  @override
+  String get voiceTapToSpeak => 'మాట్లాడటానికి నొక్కండి';
+
+  @override
+  String get voiceListening => 'వినిపిస్తోంది...';
+
+  @override
+  String get voiceStop => 'ఆపు';
+
+  @override
+  String get voiceIHeard => 'నేను విన్నది';
+
+  @override
+  String get voiceActivityLabel => 'కార్యకలాపం';
+
+  @override
+  String get voiceActivityFeed => 'మేత';
+
+  @override
+  String get voiceActivityWater => 'నీటి నాణ్యత';
+
+  @override
+  String get voiceActivityGrowth => 'పెరుగుదల నమూనా';
+
+  @override
+  String get voiceActivityMortality => 'మరణాలు';
+
+  @override
+  String get voiceActivityUnknown => 'తెలియదు';
+
+  @override
+  String get voiceConfirmAndSave => 'నిర్ధారించి సేవ్ చేయండి';
+
+  @override
+  String get voiceTryAgain => 'మళ్లీ ప్రయత్నించండి';
+
+  @override
+  String get voiceCancel => 'రద్దు';
+
+  @override
+  String get voiceDone => 'పూర్తి';
+
+  @override
+  String get voiceSaved =>
+      'సేవ్ అయింది. ఈ కార్యకలాపం ఇప్పుడు మీ ఫారం రికార్డుల్లో ఉంది.';
+
+  @override
+  String get voiceSaveFailed =>
+      'సేవ్ చేయలేకపోయాం. విలువలు చూసి మళ్లీ నిర్ధారించండి.';
+
+  @override
+  String get voiceMicDenied =>
+      'వాయిస్‌తో ఫారం కార్యకలాపం రికార్డ్ చేయడానికి మైక్రోఫోన్ అనుమతి అవసరం.';
+
+  @override
+  String get voiceSpeechUnavailable =>
+      'ఈ పరికరంలో స్పీచ్ రికగ్నిషన్ అందుబాటులో లేదు.';
+
+  @override
+  String get voiceEmptyTranscript =>
+      'అర్థం కాలేదు. మైక్రోఫోన్ నొక్కి మళ్లీ ప్రయత్నించండి.';
+
+  @override
+  String get voiceMissingField =>
+      'లేదు — ఈ విలువను నమోదు చేయండి లేదా ఎంచుకోండి';
+
+  @override
+  String get voiceSelectPond => 'చెరువు ఎంచుకోండి';
+
+  @override
+  String get voiceUnknownActivity =>
+      'ఏ కార్యకలాపమో అర్థం కాలేదు. మళ్లీ ప్రయత్నించండి లేదా మాన్యువల్ ఎంట్రీ ఉపయోగించండి.';
+
+  @override
+  String voicePleaseConfirmPond(String heard) {
+    return 'నేను $heard విన్నాను. చెరువును నిర్ధారించండి.';
+  }
+
+  @override
+  String get voiceExamplesTitle => 'ఉదాహరణలు';
+
+  @override
+  String get voiceExampleFeed => 'Feed Pond 2 45 kg tray empty';
+
+  @override
+  String get voiceExampleWater => 'DO 5.2 pH 8.1 Pond 3';
+
+  @override
+  String get voiceTeluguSpeechUnavailable =>
+      'ఈ డివైస్‌లో తెలుగు స్పీచ్ లేదు. ఇంగ్లీష్ (ఇండియా) వాడబడుతోంది. మిక్స్‌డ్ తెలుగు-ఇంగ్లీష్ ఇంకా మాట్లాడవచ్చు, లేదా Android స్పీచ్ సెట్టింగుల్లో తెలుగు ఇన్‌స్టాల్ చేయండి.';
 }
