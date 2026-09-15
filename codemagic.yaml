@@ -41,9 +41,9 @@ workflows:
       cocoapods: default
     scripts:
       - name: Set up code signing
-        script: |
-          xcode-project use-profiles \
-            --custom-export-options='{"testFlightInternalTestingOnly": true}'
+        # App Store distribution without Internal-Only so the IPA can be added
+        # to External Testing groups and used for a public TestFlight link.
+        script: xcode-project use-profiles
       - name: Get Flutter packages
         script: flutter pub get
       - name: Install CocoaPods dependencies
@@ -63,6 +63,7 @@ workflows:
     publishing:
       app_store_connect:
         auth: integration
-        # Upload only — Account Holder can install via Internal Testing.
-        # External beta submit needs TestFlight "Test Information" filled in ASC.
+        # Upload only. In ASC: add the build to External_shrimp_farm, submit
+        # Beta App Review if prompted, then enable Public Link on that group.
+        # Requires TestFlight "Test Information" (feedback email, etc.).
         submit_to_testflight: false
