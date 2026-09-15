@@ -365,4 +365,20 @@ final _realDeviceFailures = <VoicePhraseCase>[
     expectedFeedType: 'growth booster',
     expectedTray: FeedTrayStatus.full,
   ),
+  VoicePhraseCase(
+    id: 'stt_ios_probiotic_pond245_re_enti',
+    category: VoicePhraseCategory.realDeviceFailures,
+    spokenIntentDescription:
+        'Probiotic feed Pond 2 45 kg tray empty (pond245 / Re enti STT)',
+    rawSttTranscript: 'Probiotic feed pond 245 kgs Re enti',
+    knownPonds: [
+      testPond(id: 'p1', name: 'Pond 1'),
+      testPond(id: 'p2', name: 'Pond 2'),
+    ],
+    expectedActivity: FarmActivityType.feed,
+    expectedPondId: 'p2',
+    expectedQuantityKg: 45,
+    expectedFeedType: 'probiotic starter',
+    expectedTray: FeedTrayStatus.empty,
+  ),
 ];

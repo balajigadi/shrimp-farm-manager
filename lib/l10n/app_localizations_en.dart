@@ -1182,4 +1182,8 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get voiceTeluguSpeechUnavailable =>
       'Telugu speech is not installed on this device. Using English (India) instead. You can still speak mixed Telugu-English, or install Telugu in Android speech settings.';
+
+  @override
+  String get voiceTeluguSpeechUnavailableIos =>
+      'Telugu speech recognition isn\'t available on this device. English (India) is being used. Telugu or mixed-language speech may be less accurate.';
 }

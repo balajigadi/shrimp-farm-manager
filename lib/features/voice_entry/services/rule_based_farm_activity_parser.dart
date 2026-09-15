@@ -165,7 +165,7 @@ class RuleBasedFarmActivityParser implements FarmActivityParser {
       return FarmActivityType.waterQuality;
     }
     if (RegExp(
-      r'\bfeed\b|\bvesam\b|\bvesamu\b|\btray\b|\bkilos?\b|\bkg\b',
+      r'\bfeed\b|\bvesam\b|\bvesamu\b|\btray\b|\bkilos?\b|\bkgs?\b|\bkg\b',
     ).hasMatch(lower)) {
       return FarmActivityType.feed;
     }
@@ -222,7 +222,7 @@ class RuleBasedFarmActivityParser implements FarmActivityParser {
 
   double? _extractQuantityKg(String lower) {
     final match = RegExp(
-      r'(\d+(?:\.\d+)?)\s*(kilos?|kilograms?|kg)\b',
+      r'(\d+(?:\.\d+)?)\s*(kgs?|kilos?|kilograms?|kg)\b',
     ).firstMatch(lower);
     if (match == null) return null;
     return double.tryParse(match.group(1)!);

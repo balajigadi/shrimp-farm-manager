@@ -453,5 +453,6 @@
   "voiceExamplesTitle": "Examples",
   "voiceExampleFeed": "Feed Pond 2 45 kg tray empty",
   "voiceExampleWater": "DO 5.2 pH 8.1 Pond 3",
-  "voiceTeluguSpeechUnavailable": "Telugu speech is not installed on this device. Using English (India) instead. You can still speak mixed Telugu-English, or install Telugu in Android speech settings."
+  "voiceTeluguSpeechUnavailable": "Telugu speech is not installed on this device. Using English (India) instead. You can still speak mixed Telugu-English, or install Telugu in Android speech settings.",
+  "voiceTeluguSpeechUnavailableIos": "Telugu speech recognition isn't available on this device. English (India) is being used. Telugu or mixed-language speech may be less accurate."
 }

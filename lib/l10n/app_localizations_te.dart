@@ -1194,4 +1194,8 @@ class AppLocalizationsTe extends AppLocalizations {
   @override
   String get voiceTeluguSpeechUnavailable =>
       'ఈ డివైస్‌లో తెలుగు స్పీచ్ లేదు. ఇంగ్లీష్ (ఇండియా) వాడబడుతోంది. మిక్స్‌డ్ తెలుగు-ఇంగ్లీష్ ఇంకా మాట్లాడవచ్చు, లేదా Android స్పీచ్ సెట్టింగుల్లో తెలుగు ఇన్‌స్టాల్ చేయండి.';
+
+  @override
+  String get voiceTeluguSpeechUnavailableIos =>
+      'ఈ డివైస్‌లో తెలుగు స్పీచ్ రికగ్నిషన్ లేదు. ఇంగ్లీష్ (ఇండియా) వాడబడుతోంది. తెలుగు లేదా మిక్స్‌డ్ స్పీచ్ తక్కువ ఖచ్చితంగా ఉండవచ్చు.';
 }

@@ -12,6 +12,7 @@ import '../services/voice_entry_analytics.dart';
 import '../services/voice_entry_debug_log.dart';
 import '../services/voice_language_store.dart';
 import '../services/voice_speech_locale_picker.dart';
+import '../services/voice_telugu_unavailable_message.dart';
 import '../widgets/voice_record_button.dart';
 import '../widgets/voice_transcript_card.dart';
 import 'voice_confirmation_screen.dart';
@@ -114,7 +115,7 @@ class _VoiceFarmEntryScreenState extends State<VoiceFarmEntryScreen> {
     if (widget.voiceLanguagePreference == VoiceLanguagePreference.english) {
       return null;
     }
-    return l10n.voiceTeluguSpeechUnavailable;
+    return voiceTeluguSpeechUnavailableMessage(l10n);
   }
 
   Future<void> _toggleListening() async {

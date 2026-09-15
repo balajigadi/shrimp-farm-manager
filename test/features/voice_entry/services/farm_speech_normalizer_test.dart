@@ -207,6 +207,107 @@ void main() {
     });
   });
 
+  group('iOS STT: concatenated pond + quantity', () {
+    test('pond 245 kgs splits to Pond 2 + 45 when Pond 2 is known', () {
+      final ponds = [
+        testPond(id: 'p1', name: 'Pond 1'),
+        testPond(id: 'p2', name: 'Pond 2'),
+        testPond(id: 'ps', name: 'South Pond'),
+      ];
+      final result = normalizer.normalize(
+        'Probiotic feed pond 245 kgs Re enti',
+        ponds: ponds,
+      );
+      expect(result.rawTranscript, 'Probiotic feed pond 245 kgs Re enti');
+      expect(result.normalizedTranscript.toLowerCase(), contains('pond 2'));
+      expect(
+        result.normalizedTranscript.toLowerCase(),
+        contains(RegExp(r'\b45\s+kgs?\b')),
+      );
+      expect(
+        result.normalizedTranscript.toLowerCase(),
+        isNot(contains(RegExp(r'\b245\b'))),
+      );
+      expect(
+        FarmSpeechNormalizer.debugCorrections.any((c) => c.kind == 'pond_qty'),
+        isTrue,
+      );
+    });
+
+    test('pond 245 kgs with only Pond 24 becomes 24 + 5', () {
+      final result = normalizer.normalize(
+        'feed pond 245 kgs tray empty',
+        ponds: [testPond(id: 'p24', name: 'Pond 24')],
+      );
+      expect(result.normalizedTranscript.toLowerCase(), contains('pond 24'));
+      expect(
+        result.normalizedTranscript.toLowerCase(),
+        contains(RegExp(r'\b5\s+kgs?\b')),
+      );
+    });
+
+    test('pond 245 kgs is ambiguous with Pond 2 and Pond 24', () {
+      final result = normalizer.normalize(
+        'feed pond 245 kgs tray empty',
+        ponds: [
+          testPond(id: 'p2', name: 'Pond 2'),
+          testPond(id: 'p24', name: 'Pond 24'),
+        ],
+      );
+      expect(result.normalizedTranscript.toLowerCase(), contains('245'));
+      expect(
+        result.normalizedTranscript.toLowerCase(),
+        isNot(contains(RegExp(r'\bpond 2 45\b'))),
+      );
+    });
+
+    test('bare 245 kgs is not split without pond token', () {
+      final result = normalizer.normalize(
+        'feed 245 kgs tray empty',
+        ponds: [
+          testPond(id: 'p1', name: 'Pond 1'),
+          testPond(id: 'p2', name: 'Pond 2'),
+        ],
+      );
+      expect(result.normalizedTranscript.toLowerCase(), contains('245'));
+    });
+
+    test('South Pond only does not invent a digit split for pond 245', () {
+      final result = normalizer.normalize(
+        'feed pond 245 kgs tray empty',
+        ponds: [testPond(id: 'ps', name: 'South Pond')],
+      );
+      expect(result.normalizedTranscript.toLowerCase(), contains('245'));
+    });
+  });
+
+  group('iOS STT: tray empty variants', () {
+    test('re enti and re empty become tray empty in feed context', () {
+      expect(
+        normalizer
+            .normalize(
+              'Probiotic feed pond 2 45 kgs Re enti',
+              ponds: demoPonds(),
+            )
+            .normalizedTranscript
+            .toLowerCase(),
+        contains('tray empty'),
+      );
+      expect(
+        normalizer
+            .normalize('Pond 2 feed 45 kg re empty', ponds: demoPonds())
+            .normalizedTranscript
+            .toLowerCase(),
+        contains('tray empty'),
+      );
+    });
+
+    test('re enti is not rewritten outside feed context', () {
+      final result = normalizer.normalize('please re enti the nets');
+      expect(result.normalizedTranscript, 'please re enti the nets');
+    });
+  });
+
   // --- existing regression coverage below ---
 
   test('C20 kg becomes 20 kg in normalized text only', () {

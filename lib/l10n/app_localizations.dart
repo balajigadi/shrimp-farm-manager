@@ -2347,6 +2347,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Telugu speech is not installed on this device. Using English (India) instead. You can still speak mixed Telugu-English, or install Telugu in Android speech settings.'**
   String get voiceTeluguSpeechUnavailable;
+
+  /// No description provided for @voiceTeluguSpeechUnavailableIos.
+  ///
+  /// In en, this message translates to:
+  /// **'Telugu speech recognition isn\'t available on this device. English (India) is being used. Telugu or mixed-language speech may be less accurate.'**
+  String get voiceTeluguSpeechUnavailableIos;
 }
 
 class _AppLocalizationsDelegate

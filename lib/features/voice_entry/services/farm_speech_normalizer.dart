@@ -39,7 +39,7 @@ class FarmSpeechNormalizer {
   static const maxPondEditDistance = 3;
 
   static final _quantityPrefix = RegExp(
-    r'\b([A-Za-z])(\d+(?:\.\d+)?)\s*(kilos?|kilograms?|kg)\b',
+    r'\b([A-Za-z])(\d+(?:\.\d+)?)\s*(kgs?|kilos?|kilograms?|kg)\b',
     caseSensitive: false,
   );
 
@@ -130,6 +130,7 @@ class FarmSpeechNormalizer {
     text = _normalizeNumberWords(text);
     text = _normalizeSpokenDecimals(text);
     text = _normalizeQuantityPrefix(text, ponds);
+    text = _normalizeConcatenatedPondQuantity(text, ponds);
     text = _normalizeTrayPhrases(text);
     text = _rewriteUniqueNamedPonds(text, ponds);
 
@@ -304,15 +305,79 @@ class FarmSpeechNormalizer {
         return 'tray empty';
       },
     );
+    out = out.replaceAllMapped(RegExp(r'\bre\s+enti\b', caseSensitive: false), (
+      match,
+    ) {
+      _logCorrection('tray', match.group(0)!, 'tray empty');
+      return 'tray empty';
+    });
+    out = out.replaceAllMapped(
+      RegExp(r'\bre\s+empty\b', caseSensitive: false),
+      (match) {
+        _logCorrection('tray', match.group(0)!, 'tray empty');
+        return 'tray empty';
+      },
+    );
     return out;
   }
 
   static bool _isFeedOrTrayContext(String text) {
     final lower = text.toLowerCase();
     return RegExp(
-          r'\b(kg|kilos?|kilograms?|feed|vesam|vesamu|vesina|vesamandi|tray)\b',
+          r'\b(kg|kgs|kilos?|kilograms?|feed|vesam|vesamu|vesina|vesamandi|tray)\b',
         ).hasMatch(lower) ||
         _quantityPrefix.hasMatch(text);
+  }
+
+  /// "pond 245 kgs" → "pond 2 45 kgs" when exactly one known pond-number prefix
+  /// yields a positive quantity suffix. Never splits bare quantities.
+  static String _normalizeConcatenatedPondQuantity(
+    String text,
+    List<Pond> ponds,
+  ) {
+    final pondIds = _numericPondIds(ponds);
+    if (pondIds.isEmpty) return text;
+    return text.replaceAllMapped(
+      RegExp(
+        r'\bpond\s+(\d+)\s*(kgs?|kilos?|kilograms?|kg)\b',
+        caseSensitive: false,
+      ),
+      (match) {
+        final digits = match.group(1)!;
+        final unit = match.group(2)!;
+        final splits = <({String pondId, String qty})>[];
+        for (final id in pondIds) {
+          if (!digits.startsWith(id) || digits.length <= id.length) continue;
+          final qty = digits.substring(id.length);
+          final value = double.tryParse(qty);
+          if (value == null || value <= 0) continue;
+          // Reject leading-zero quirks like pond 20 + "05" from "2005" — allow
+          // only when qty has no pointless leading zero unless decimal.
+          if (qty.length > 1 && qty.startsWith('0') && !qty.startsWith('0.')) {
+            continue;
+          }
+          splits.add((pondId: id, qty: qty));
+        }
+        if (splits.length != 1) return match.group(0)!;
+        final split = splits.single;
+        final corrected = 'pond ${split.pondId} ${split.qty} $unit';
+        _logCorrection('pond_qty', match.group(0)!, corrected);
+        return corrected;
+      },
+    );
+  }
+
+  /// Numeric ids from names like "Pond 2" / "pond 24" only.
+  static List<String> _numericPondIds(List<Pond> ponds) {
+    final ids = <String>[];
+    final pattern = RegExp(r'^pond\s+(\d+)$', caseSensitive: false);
+    for (final pond in ponds) {
+      final match = pattern.firstMatch(pond.name.trim());
+      if (match != null) {
+        ids.add(match.group(1)!);
+      }
+    }
+    return ids;
   }
 
   /// Rewrites a directional "… pond/point" span only when one known pond is a
