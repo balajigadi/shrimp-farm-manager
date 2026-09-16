@@ -1,10 +1,13 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:prawn_farm_app/app/app.dart';
 import 'package:prawn_farm_app/features/voice_entry/screens/stt_locale_lab_screen.dart';
+import 'package:prawn_farm_app/features/voice_entry/screens/transcription_pilot_screen.dart';
 import 'package:prawn_farm_app/features/voice_entry/services/voice_language_store.dart';
 import 'package:prawn_farm_app/features/voice_entry/services/voice_speech_locale_picker.dart';
+import 'package:prawn_farm_app/features/voice_entry/transcription/voice_engine.dart';
 import 'package:prawn_farm_app/l10n/app_localizations.dart';
 import 'package:prawn_farm_app/services/notification_service.dart';
 import 'package:prawn_farm_app/services/user_profile_service.dart';
@@ -35,13 +38,16 @@ class _LanguageSettingsScreenState extends State<LanguageSettingsScreen> {
   bool _applyingAlerts = false;
   bool _loadingAlertSettings = true;
   VoiceLanguagePreference _voiceLanguage = VoiceLanguagePreference.autoMixed;
+  VoiceEngine _voiceEngine = VoiceEngine.platform;
   final _voiceLanguageStore = const VoiceLanguageStore();
+  final _voiceEngineStore = const VoiceEngineStore();
 
   @override
   void initState() {
     super.initState();
     _initForProfile();
     _loadVoiceLanguage();
+    _loadVoiceEngine();
   }
 
   Future<void> _loadVoiceLanguage() async {
@@ -55,6 +61,20 @@ class _LanguageSettingsScreenState extends State<LanguageSettingsScreen> {
     setState(() => _voiceLanguage = value);
     try {
       await _voiceLanguageStore.save(value);
+    } catch (_) {}
+  }
+
+  Future<void> _loadVoiceEngine() async {
+    final engine = await _voiceEngineStore.load();
+    if (!mounted) return;
+    setState(() => _voiceEngine = engine);
+  }
+
+  Future<void> _setVoiceEngine(VoiceEngine? value) async {
+    if (value == null) return;
+    setState(() => _voiceEngine = value);
+    try {
+      await _voiceEngineStore.save(value);
     } catch (_) {}
   }
 
@@ -281,6 +301,56 @@ class _LanguageSettingsScreenState extends State<LanguageSettingsScreen> {
                         ),
                       ),
                     ),
+                    if (kDebugMode || SttLocaleLabScreen.isVisible) ...[
+                      const Divider(height: 1),
+                      const Padding(
+                        padding: EdgeInsets.fromLTRB(16, 12, 16, 4),
+                        child: Text(
+                          'Voice engine experiment',
+                          style: TextStyle(fontWeight: FontWeight.w600),
+                        ),
+                      ),
+                      RadioListTile<VoiceEngine>(
+                        key: const Key('settings_voice_engine_platform'),
+                        dense: true,
+                        title: const Text('Platform STT'),
+                        value: VoiceEngine.platform,
+                        groupValue: _voiceEngine,
+                        onChanged: _setVoiceEngine,
+                      ),
+                      RadioListTile<VoiceEngine>(
+                        key: const Key('settings_voice_engine_cloud'),
+                        dense: true,
+                        title: const Text('OpenAI GPT Transcribe'),
+                        value: VoiceEngine.cloud,
+                        groupValue: _voiceEngine,
+                        onChanged: _setVoiceEngine,
+                      ),
+                      RadioListTile<VoiceEngine>(
+                        key: const Key('settings_voice_engine_auto'),
+                        dense: true,
+                        title: const Text('Auto'),
+                        value: VoiceEngine.auto,
+                        groupValue: _voiceEngine,
+                        onChanged: _setVoiceEngine,
+                      ),
+                      ListTile(
+                        key: const Key('settings_transcription_pilot'),
+                        leading: const Icon(Icons.compare_arrows),
+                        title: const Text('Transcription pilot'),
+                        subtitle: const Text(
+                          'Review debug-only voice experiment attempts',
+                        ),
+                        trailing: const Icon(Icons.chevron_right),
+                        onTap: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute<void>(
+                              builder: (_) => const TranscriptionPilotScreen(),
+                            ),
+                          );
+                        },
+                      ),
+                    ],
                     if (SttLocaleLabScreen.isVisible)
                       ListTile(
                         key: const Key('settings_stt_locale_lab'),

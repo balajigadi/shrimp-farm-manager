@@ -4,3 +4,4 @@ initializeApp();
 
 export { onRequirementCreated } from "./onRequirementCreated";
 export { clearInvalidFcmTokens } from "./cleanupInvalidTokens";
+export { transcribeFarmAudio } from "./transcribeFarmAudio";

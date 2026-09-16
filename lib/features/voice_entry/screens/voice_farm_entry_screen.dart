@@ -1,3 +1,5 @@
+import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:prawn_farm_app/features/pond/pond_model.dart';
 import 'package:prawn_farm_app/l10n/app_localizations.dart';
@@ -13,6 +15,15 @@ import '../services/voice_entry_debug_log.dart';
 import '../services/voice_language_store.dart';
 import '../services/voice_speech_locale_picker.dart';
 import '../services/voice_telugu_unavailable_message.dart';
+import '../transcription/farm_transcription_client.dart';
+import '../transcription/openai_transcription_provider.dart';
+import '../transcription/platform_transcription_provider.dart';
+import '../transcription/record_package_audio_recorder.dart';
+import '../transcription/resolving_transcription_provider.dart';
+import '../transcription/transcription_failure.dart';
+import '../transcription/transcription_provider.dart';
+import '../transcription/transcription_request.dart';
+import '../transcription/voice_engine.dart';
 import '../widgets/voice_record_button.dart';
 import '../widgets/voice_transcript_card.dart';
 import 'voice_confirmation_screen.dart';
@@ -33,6 +44,7 @@ class VoiceFarmEntryScreen extends StatefulWidget {
     super.key,
     required this.ponds,
     this.speech,
+    this.transcriptionProvider,
     this.parser,
     this.writer,
     this.analytics = const NoOpVoiceEntryAnalytics(),
@@ -40,10 +52,14 @@ class VoiceFarmEntryScreen extends StatefulWidget {
     this.initialDraft,
     this.voiceLanguagePreference,
     this.voiceLanguageStore = const VoiceLanguageStore(),
+    this.voiceEngineStore = const VoiceEngineStore(),
+    this.voiceEngine,
+    this.networkAvailable,
   });
 
   final List<Pond> ponds;
   final SpeechRecognitionService? speech;
+  final TranscriptionProvider? transcriptionProvider;
   final FarmActivityParser? parser;
   final FarmActivityWriter? writer;
   final VoiceEntryAnalytics analytics;
@@ -51,6 +67,9 @@ class VoiceFarmEntryScreen extends StatefulWidget {
   final FarmActivityDraft? initialDraft;
   final VoiceLanguagePreference? voiceLanguagePreference;
   final VoiceLanguageStore voiceLanguageStore;
+  final VoiceEngineStore voiceEngineStore;
+  final VoiceEngine? voiceEngine;
+  final Future<bool> Function()? networkAvailable;
 
   @override
   State<VoiceFarmEntryScreen> createState() => _VoiceFarmEntryScreenState();
@@ -58,6 +77,7 @@ class VoiceFarmEntryScreen extends StatefulWidget {
 
 class _VoiceFarmEntryScreenState extends State<VoiceFarmEntryScreen> {
   late final SpeechRecognitionService _speech;
+  TranscriptionProvider? _provider;
   late final FarmActivityParser _parser;
   late final FarmActivityWriter _writer;
   final _validator = const FarmActivityValidator();
@@ -66,9 +86,12 @@ class _VoiceFarmEntryScreenState extends State<VoiceFarmEntryScreen> {
   String _liveTranscript = '';
   FarmActivityDraft? _draft;
   SpeechFailure? _speechFailure;
+  TranscriptionFailure? _transcriptionFailure;
   var _saveFailed = false;
   var _saveInFlight = false;
   String? _localeNotice;
+  String? _fallbackNoticeDebug;
+  var _offerStandardVoice = false;
 
   @override
   void initState() {
@@ -83,6 +106,44 @@ class _VoiceFarmEntryScreenState extends State<VoiceFarmEntryScreen> {
       _liveTranscript = seed.rawTranscript;
       _phase = VoiceEntryPhase.review;
     }
+  }
+
+  Future<bool> _isOnline() async {
+    if (widget.networkAvailable != null) {
+      return widget.networkAvailable!();
+    }
+    try {
+      final results = await Connectivity().checkConnectivity();
+      return results.any((r) => r != ConnectivityResult.none);
+    } catch (_) {
+      return true;
+    }
+  }
+
+  Future<TranscriptionProvider> _resolveProvider() async {
+    if (widget.transcriptionProvider != null) {
+      return widget.transcriptionProvider!;
+    }
+    final platform = PlatformTranscriptionProvider(speech: _speech);
+    // Injected speech (tests / legacy) always uses platform STT.
+    if (widget.speech != null) {
+      return platform;
+    }
+    final engine = widget.voiceEngine ?? await widget.voiceEngineStore.load();
+    if (engine == VoiceEngine.platform) {
+      return platform;
+    }
+    final cloud = OpenAiTranscriptionProvider(
+      recorder: RecordPackageAudioRecorder(),
+      client: CallableFarmTranscriptionClient(),
+      networkAvailable: _isOnline,
+    );
+    return ResolvingTranscriptionProvider(
+      engine: engine,
+      platform: platform,
+      cloud: cloud,
+      networkAvailable: _isOnline,
+    );
   }
 
   Future<VoiceSpeechLocaleSelection> _selectSpeechLocale() async {
@@ -107,7 +168,7 @@ class _VoiceFarmEntryScreenState extends State<VoiceFarmEntryScreen> {
     return selection;
   }
 
-  String? _fallbackNotice(
+  String? _teluguNotice(
     AppLocalizations l10n,
     VoiceSpeechLocaleSelection selection,
   ) {
@@ -137,22 +198,37 @@ class _VoiceFarmEntryScreenState extends State<VoiceFarmEntryScreen> {
       _liveTranscript = '';
       _draft = null;
       _speechFailure = null;
+      _transcriptionFailure = null;
       _saveFailed = false;
       _localeNotice = null;
+      _fallbackNoticeDebug = null;
+      _offerStandardVoice = false;
     });
     try {
-      await _speech.initialize();
+      _provider = await _resolveProvider();
       if (!mounted) return;
+      final preference =
+          widget.voiceLanguagePreference ??
+          await widget.voiceLanguageStore.load();
       final selection = await _selectSpeechLocale();
       if (!mounted) return;
       final l10n = AppLocalizations.of(context)!;
+      final pondNames = [for (final p in widget.ponds) p.name];
       setState(() {
         _phase = VoiceEntryPhase.listening;
-        _localeNotice = _fallbackNotice(l10n, selection);
+        _localeNotice = _teluguNotice(l10n, selection);
       });
       widget.analytics.track(VoiceEvents.listeningStarted);
-      await _speech.startListening(
-        localeId: selection.localeId,
+      await _provider!.start(
+        request: TranscriptionRequest(
+          pondNames: pondNames,
+          languageHints: preference == VoiceLanguagePreference.english
+              ? const ['en']
+              : preference == VoiceLanguagePreference.telugu
+              ? const ['te', 'en']
+              : const ['en', 'te'],
+          localeId: selection.localeId,
+        ),
         onResult: (text, {required isFinal}) {
           if (!mounted) return;
           setState(() => _liveTranscript = text);
@@ -161,6 +237,22 @@ class _VoiceFarmEntryScreenState extends State<VoiceFarmEntryScreen> {
           }
         },
       );
+    } on TranscriptionException catch (e) {
+      widget.analytics.track(VoiceEvents.recognitionFailed);
+      if (!mounted) return;
+      if (e.failure == TranscriptionFailure.networkUnavailable) {
+        setState(() {
+          _phase = VoiceEntryPhase.error;
+          _transcriptionFailure = e.failure;
+          _offerStandardVoice = true;
+        });
+        return;
+      }
+      setState(() {
+        _phase = VoiceEntryPhase.error;
+        _transcriptionFailure = e.failure;
+        _speechFailure = _mapToSpeech(e.failure);
+      });
     } on SpeechRecognitionException catch (e) {
       widget.analytics.track(VoiceEvents.recognitionFailed);
       if (!mounted) return;
@@ -178,6 +270,15 @@ class _VoiceFarmEntryScreenState extends State<VoiceFarmEntryScreen> {
     }
   }
 
+  SpeechFailure _mapToSpeech(TranscriptionFailure failure) {
+    return switch (failure) {
+      TranscriptionFailure.permissionDenied => SpeechFailure.permissionDenied,
+      TranscriptionFailure.unavailable => SpeechFailure.unavailable,
+      TranscriptionFailure.empty => SpeechFailure.noResult,
+      _ => SpeechFailure.unknown,
+    };
+  }
+
   Future<void>? _completeInFlight;
 
   Future<void> _completeRecognition() {
@@ -192,18 +293,30 @@ class _VoiceFarmEntryScreenState extends State<VoiceFarmEntryScreen> {
   Future<void> _completeRecognitionBody() async {
     setState(() => _phase = VoiceEntryPhase.processing);
     try {
-      await _speech.stopListening();
-      final transcript = _liveTranscript.trim();
+      final provider = _provider;
+      if (provider == null) {
+        setState(() {
+          _phase = VoiceEntryPhase.error;
+          _speechFailure = SpeechFailure.unknown;
+        });
+        return;
+      }
+      final result = await provider.stop();
+      final transcript = result.transcript.trim();
       if (transcript.isEmpty) {
         widget.analytics.track(VoiceEvents.recognitionFailed);
         if (!mounted) return;
         setState(() {
           _phase = VoiceEntryPhase.error;
           _speechFailure = SpeechFailure.noResult;
+          _transcriptionFailure = TranscriptionFailure.empty;
         });
         return;
       }
       widget.analytics.track(VoiceEvents.recognitionSucceeded);
+      if (kDebugMode && result.usedFallback) {
+        _fallbackNoticeDebug = 'Fallback: Platform STT';
+      }
       final draft = await _parser.parse(
         transcript,
         ponds: widget.ponds,
@@ -216,8 +329,24 @@ class _VoiceFarmEntryScreenState extends State<VoiceFarmEntryScreen> {
       }
       if (!mounted) return;
       setState(() {
+        _liveTranscript = transcript;
         _draft = draft;
         _phase = VoiceEntryPhase.review;
+      });
+    } on TranscriptionException catch (e) {
+      widget.analytics.track(VoiceEvents.recognitionFailed);
+      if (!mounted) return;
+      setState(() {
+        _phase = VoiceEntryPhase.error;
+        _transcriptionFailure = e.failure;
+        _speechFailure = _mapToSpeech(e.failure);
+      });
+    } catch (_) {
+      widget.analytics.track(VoiceEvents.recognitionFailed);
+      if (!mounted) return;
+      setState(() {
+        _phase = VoiceEntryPhase.error;
+        _speechFailure = SpeechFailure.unknown;
       });
     } finally {
       _completeInFlight = null;
@@ -270,11 +399,20 @@ class _VoiceFarmEntryScreenState extends State<VoiceFarmEntryScreen> {
       _liveTranscript = '';
       _draft = null;
       _speechFailure = null;
+      _transcriptionFailure = null;
       _saveFailed = false;
       _saveInFlight = false;
       _localeNotice = null;
+      _fallbackNoticeDebug = null;
+      _offerStandardVoice = false;
       _completeInFlight = null;
     });
+  }
+
+  Future<void> _useStandardVoice() async {
+    await widget.voiceEngineStore.save(VoiceEngine.platform);
+    _tryAgain();
+    await _startListening();
   }
 
   void _cancel() {
@@ -283,6 +421,15 @@ class _VoiceFarmEntryScreenState extends State<VoiceFarmEntryScreen> {
   }
 
   String _errorMessage(AppLocalizations l10n) {
+    if (_transcriptionFailure == TranscriptionFailure.networkUnavailable) {
+      return 'Enhanced voice needs an internet connection.\nUse standard voice instead?';
+    }
+    if (_transcriptionFailure == TranscriptionFailure.timeout) {
+      return 'Transcription timed out. Please try again.';
+    }
+    if (_transcriptionFailure == TranscriptionFailure.unauthenticated) {
+      return 'Sign in required for enhanced voice.';
+    }
     return switch (_speechFailure) {
       SpeechFailure.permissionDenied => l10n.voiceMicDenied,
       SpeechFailure.unavailable => l10n.voiceSpeechUnavailable,
@@ -322,7 +469,7 @@ class _VoiceFarmEntryScreenState extends State<VoiceFarmEntryScreen> {
       saving: _phase == VoiceEntryPhase.saving,
       saveFailed: _saveFailed,
     );
-    final notice = _localeNotice;
+    final notice = _localeNotice ?? _fallbackNoticeDebug;
     if (notice == null) return confirmation;
     return Column(
       children: [
@@ -404,6 +551,10 @@ class _VoiceFarmEntryScreenState extends State<VoiceFarmEntryScreen> {
           const SizedBox(height: 12),
           _localeBanner(_localeNotice!),
         ],
+        if (_fallbackNoticeDebug != null) ...[
+          const SizedBox(height: 12),
+          _localeBanner(_fallbackNoticeDebug!),
+        ],
         if (listening) ...[
           const SizedBox(height: 12),
           OutlinedButton(
@@ -428,11 +579,24 @@ class _VoiceFarmEntryScreenState extends State<VoiceFarmEntryScreen> {
             style: const TextStyle(color: Color(0xFFAE2012)),
           ),
           const SizedBox(height: 12),
-          OutlinedButton(
-            key: const Key('voice_retry_button'),
-            onPressed: _tryAgain,
-            child: Text(l10n.voiceTryAgain),
-          ),
+          if (_offerStandardVoice) ...[
+            FilledButton(
+              key: const Key('voice_use_standard_button'),
+              onPressed: _useStandardVoice,
+              child: const Text('Use Standard Voice'),
+            ),
+            const SizedBox(height: 8),
+            OutlinedButton(
+              key: const Key('voice_cancel_enhanced_button'),
+              onPressed: _tryAgain,
+              child: Text(l10n.voiceCancel),
+            ),
+          ] else
+            OutlinedButton(
+              key: const Key('voice_retry_button'),
+              onPressed: _tryAgain,
+              child: Text(l10n.voiceTryAgain),
+            ),
         ],
         const SizedBox(height: 32),
         Text(l10n.voiceExamplesTitle, textAlign: TextAlign.center),
