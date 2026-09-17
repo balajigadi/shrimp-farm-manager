@@ -30,6 +30,12 @@ workflows:
     instance_type: mac_mini_m2
     integrations:
       app_store_connect: ShrimpFarmManager
+    triggering:
+      events:
+        - push
+      branch_patterns:
+        - pattern: feature/voice-farm-entry
+          include: true
     environment:
       ios_signing:
         distribution_type: app_store
